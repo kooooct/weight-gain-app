@@ -1,0 +1,32 @@
+### 増量シミュレーションの実行テスト
+POST http://localhost:8080/api/v1/simulations/calculate
+Content-Type: application/json
+
+{
+  "height": 183.0,
+  "weight": 55.95,
+  "age": 20,
+  "gender": "MALE",
+  "activityLevel": "LOW"
+}
+
+### 1. 牛丼を登録する
+POST http://localhost:8080/api/v1/foods
+Content-Type: application/json
+
+{
+  "name": "牛丼（大盛り）",
+  "calories": 850
+}
+
+### 2. プロテインを登録する
+POST http://localhost:8080/api/v1/foods
+Content-Type: application/json
+
+{
+  "name": "ホエイプロテイン",
+  "calories": 120
+}
+
+### 3. 全件取得して確認する
+GET http://localhost:8080/api/v1/foods

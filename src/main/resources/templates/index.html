@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Futoru - 増量管理</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
+        h1 { color: #333; text-align: center; }
+        .card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 10px; }
+        input { width: 100%; padding: 10px; box-sizing: border-box; margin-top: 5px; }
+        button { width: 100%; padding: 10px; background-color: #ff6b6b; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+        .food-list { list-style: none; padding: 0; }
+        .food-item { background: white; border-bottom: 1px solid #eee; padding: 15px; display: flex; justify-content: space-between; }
+        .calories { font-weight: bold; color: #ff6b6b; }
+    </style>
+</head>
+<body>
+
+<h1>💪 Futoru</h1>
+<div class="card" style="text-align: center; background: #e3f2fd;">
+    <h3>今日の摂取カロリー</h3>
+    <h2 style="color: #1565c0; font-size: 40px; margin: 10px 0;">
+        <span th:text="${totalCalories}">0</span> kcal
+    </h2>
+    <p>目標まであと <strong>???</strong> kcal</p>
+</div>
+
+<div class="card">
+    <h3>食べたものを記録</h3>
+    <form action="/add" method="post">
+        <div class="form-group">
+            <label>メニュー名</label>
+            <input type="text" name="name" placeholder="例: 牛丼" required>
+        </div>
+        <div class="form-group">
+            <label>カロリー (kcal)</label>
+            <input type="number" name="calories" placeholder="例: 700" required>
+        </div>
+        <button type="submit">記録する</button>
+    </form>
+</div>
+
+<h3>今日の食事履歴</h3>
+<ul class="food-list">
+    <li th:each="food : ${foods}" class="food-item">
+        <span th:text="${food.name}">料理名</span>
+        <span class="calories" th:text="${food.calories} + ' kcal'">0 kcal</span>
+    </li>
+</ul>
+
+</body>
+</html>

@@ -1,4 +1,7 @@
 package org.example.weightgainapp.dto;
 
-public class ActivityLevel {
+public enum ActivityLevel {
+    LOW,
+    MID,
+    HIGH
 }
