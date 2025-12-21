@@ -22,9 +22,14 @@
 <div class="card" style="text-align: center; background: #e3f2fd;">
     <h3>今日の摂取カロリー</h3>
     <h2 style="color: #1565c0; font-size: 40px; margin: 10px 0;">
-        <span th:text="${totalCalories}">0</span> kcal
+        <span th:text="${totalCalories}">0</span> / <span th:text="${targetCalories}">2500</span> kcal
     </h2>
-    <p>目標まであと <strong>???</strong> kcal</p>
+
+    <div style="background: #ddd; border-radius: 10px; height: 20px; width: 100%; margin: 10px 0; overflow: hidden;">
+        <div th:style="'background: #4caf50; height: 100%; width: ' + ${progress} + '%'"></div>
+    </div>
+
+    <p>目標まであと <strong style="color: #d32f2f; font-size: 20px;" th:text="${remainingCalories}">0</strong> kcal！</p>
 </div>
 
 <div class="card">

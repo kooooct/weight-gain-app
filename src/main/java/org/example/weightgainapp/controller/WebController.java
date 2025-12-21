@@ -18,18 +18,28 @@ public class WebController {
     // トップページを表示する (GET /)
     @GetMapping("/")
     public String showTopPage(Model model) {
-        // 1. DBから食べたものリストを全部持ってくる
+        // 1. 食べたものリストを取得
         List<Food> foods = foodRepository.findAll();
 
-        // 2. 合計カロリーを計算する (JavaのStream APIを使用)
-        // リストの中の food から getCalories を取り出して、全部足す(sum)
-        int totalCalories = foods.stream()
-                .mapToInt(Food::getCalories)
-                .sum();
+        // 2. 合計カロリーを計算
+        int totalCalories = foods.stream().mapToInt(Food::getCalories).sum();
 
-        // 3. 画面(HTML)にデータを渡す
+        // 3. 目標カロリー (仮)
+        int targetCalories = 2500;
+
+        // 4. 残りカロリーを計算 (マイナスにならないようにMath.maxを使う)
+        int remainingCalories = Math.max(0, targetCalories - totalCalories);
+
+        // 5. 達成率（%）を計算 (グラフ用)
+        int progress = (int) ((double) totalCalories / targetCalories * 100);
+        if (progress > 100) progress = 100; // 100%を超えないように
+
+        // 6. 画面に渡す
         model.addAttribute("foods", foods);
-        model.addAttribute("totalCalories", totalCalories); // ← これを追加！
+        model.addAttribute("totalCalories", totalCalories);
+        model.addAttribute("targetCalories", targetCalories);      // 目標
+        model.addAttribute("remainingCalories", remainingCalories); // 残り
+        model.addAttribute("progress", progress);                  // 達成率
 
         return "index";
     }
