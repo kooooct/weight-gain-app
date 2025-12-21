@@ -34,7 +34,7 @@ public class WebController {
         return "index";
     }
 
-    @PostMapping
+    @PostMapping("/add")
     public String addFood(@RequestParam String name, @RequestParam Integer calories) {
         Food food = new Food();
         food.setName(name);
