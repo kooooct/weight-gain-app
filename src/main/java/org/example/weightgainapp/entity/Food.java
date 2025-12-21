@@ -17,6 +17,7 @@ public class Food {
 
     // 食べた日時 (登録時に自動で現在時刻を入れる)
     private LocalDateTime eatenAt;
+    private Long userId;
 
     @PrePersist // ← 保存する直前に実行されるメソッド
     public void onPrePersist() {

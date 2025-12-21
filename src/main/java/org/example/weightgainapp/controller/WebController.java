@@ -1,25 +1,32 @@
 package org.example.weightgainapp.controller;
 
 import org.example.weightgainapp.entity.Food;
+import org.example.weightgainapp.entity.User;
 import org.example.weightgainapp.repository.FoodRepository;
+import org.example.weightgainapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.security.Principal;
 import java.util.List;
 @Controller
 @RequiredArgsConstructor
 public class WebController {
     private final FoodRepository foodRepository;
+    private final UserRepository userRepository;
 
     // トップページを表示する (GET /)
     @GetMapping("/")
-    public String showTopPage(Model model) {
+    public String showTopPage(Model model, Principal principal) {
+        String username = principal.getName();
+        User currentUser = userRepository.findByUsername(username).orElseThrow();
         // 1. 食べたものリストを取得
-        List<Food> foods = foodRepository.findAll();
+        List<Food> foods = foodRepository.findByUserId(currentUser.getId());
 
         // 2. 合計カロリーを計算
         int totalCalories = foods.stream().mapToInt(Food::getCalories).sum();
@@ -45,11 +52,15 @@ public class WebController {
     }
 
     @PostMapping("/add")
-    public String addFood(@RequestParam String name, @RequestParam Integer calories) {
+    public String addFood(@RequestParam String name, @RequestParam Integer calories, Principal principal) {
+        String username = principal.getName();
+        User currentUser = userRepository.findByUsername(username).orElseThrow();
+
         Food food = new Food();
         food.setName(name);
         food.setCalories(calories);
         food.onPrePersist();
+        food.setUserId(currentUser.getId());
         foodRepository.save(food);
 
         return "redirect:/";

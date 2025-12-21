@@ -34,7 +34,7 @@
 
 <div class="card">
     <h3>食べたものを記録</h3>
-    <form action="/add" method="post">
+    <form th:action="@{/add}" method="post">
         <div class="form-group">
             <label>メニュー名</label>
             <input type="text" name="name" placeholder="例: 牛丼" required>
