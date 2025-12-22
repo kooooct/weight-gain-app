@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 @RequiredArgsConstructor
 public class AuthController {
-
     private final UserService userService;
 
     // 登録画面を表示する

@@ -15,7 +15,6 @@ import java.security.Principal;
 @Controller
 @RequiredArgsConstructor
 public class ProfileController {
-
     private final UserRepository userRepository;
     private final UserService userService;
 
