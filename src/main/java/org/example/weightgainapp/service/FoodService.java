@@ -67,4 +67,16 @@ public class FoodService {
 
         foodRepository.save(food);
     }
+
+    // 自分のデータなら削除できる
+    @Transactional
+    public void deleteFood(String username, Long foodId) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Food food = foodRepository.findById(foodId).orElseThrow();
+
+        // 他人のデータを消せないようにチェック
+        if (food.getUserId().equals(user.getId())) {
+            foodRepository.delete(food);
+        }
+    }
 }

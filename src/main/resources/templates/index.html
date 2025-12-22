@@ -49,9 +49,19 @@
 
 <h3>今日の食事履歴</h3>
 <ul class="food-list">
-    <li th:each="food : ${foods}" class="food-item">
-        <span th:text="${food.name}">料理名</span>
-        <span class="calories" th:text="${food.calories} + ' kcal'">0 kcal</span>
+    <li th:each="food : ${foods}" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+    <span>
+        <span th:text="${#temporals.format(food.eatenAt, 'MM/dd HH:mm')}" style="color: gray; font-size: 0.9em; margin-right: 10px;"></span>
+        <span th:text="${food.name}"></span>
+    </span>
+        <span>
+        <strong th:text="${food.calories} + 'kcal'"></strong>
+
+        <form th:action="@{/delete}" method="post" style="display: inline; margin-left: 10px;">
+            <input type="hidden" name="id" th:value="${food.id}">
+            <button type="submit" style="background: none; border: none; color: red; cursor: pointer; font-weight: bold;">[x]</button>
+        </form>
+    </span>
     </li>
 </ul>
 

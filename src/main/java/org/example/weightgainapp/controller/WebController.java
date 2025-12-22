@@ -41,4 +41,11 @@ public class WebController {
 
         return "redirect:/";
     }
+
+    // 削除処理
+    @PostMapping("/delete")
+    public String deleteFood(@RequestParam Long id, Principal principal) {
+        foodService.deleteFood(principal.getName(), id);
+        return "redirect:/";
+    }
 }
