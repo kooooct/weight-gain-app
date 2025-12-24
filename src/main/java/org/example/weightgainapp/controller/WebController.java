@@ -1,9 +1,6 @@
 package org.example.weightgainapp.controller;
 
 import org.example.weightgainapp.dto.DashboardDto;
-import org.example.weightgainapp.entity.Food;
-import org.example.weightgainapp.entity.User;
-import org.example.weightgainapp.repository.UserRepository;
 import org.example.weightgainapp.service.FoodService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -13,12 +10,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
-import java.util.List;
 @Controller
 @RequiredArgsConstructor
 public class WebController {
     private final FoodService foodService;
-    private final UserRepository userRepository;
 
     // トップページを表示する (GET /)
     @GetMapping("/")
