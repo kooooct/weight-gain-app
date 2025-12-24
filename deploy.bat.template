@@ -1,0 +1,42 @@
+@echo off
+echo ==========================================
+echo  Building Java App (Skipping Tests)
+echo ==========================================
+call .\mvnw clean package -DskipTests
+
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Build failed. Exiting.
+    exit /b %ERRORLEVEL%
+)
+
+echo.
+echo ==========================================
+echo  Uploading app.jar to EC2
+echo ==========================================
+REM --- 自分の環境に合わせて書き換える ---
+set KEY_PATH="鍵のパス"
+set EC2_USER=ec2-user
+set EC2_HOST=サーバーのIPアドレス
+REM ---------------------------------
+
+scp -i %KEY_PATH% target\app.jar %EC2_USER%@%EC2_HOST%:/home/ec2-user/
+
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Upload failed. Exiting.
+    exit /b %ERRORLEVEL%
+)
+
+echo.
+echo ==========================================
+echo  Checking Logs (Last 20 lines)
+echo ==========================================
+echo Waiting 5 seconds for startup...
+timeout /t 5 /nobreak >nul
+
+ssh -i %KEY_PATH% %EC2_USER%@%EC2_HOST% "tail -n 20 /home/ec2-user/app.log"
+
+echo.
+echo ==========================================
+echo  DEPLOYMENT COMPLETE
+echo ==========================================
+pause
