@@ -17,7 +17,12 @@ import java.time.LocalTime;
 import java.util.List;
 
 /**
- * 食事記録および食品マスタに関するビジネスロジックを管理するサービスクラス。
+ * 食事記録および食品マスタに関するビジネスロジックを提供するサービスクラス。
+ * <p>
+ * 食品データの検索、食事の記録（登録）、削除機能を提供する。
+ * 特に食事記録時は、マスタデータの値をコピーして保存する「スナップショット」方式を採用し、
+ * 将来マスタが変更・削除されても過去の記録が整合性を保てるように設計されている。
+ * </p>
  */
 @Service
 @RequiredArgsConstructor
@@ -29,11 +34,15 @@ public class FoodService {
     private final UserRepository userRepository;
 
     /**
-     * ユーザーが選択可能な食品リストを取得します。
-     * システム標準の食品（user_idがNULL）と、ユーザー自身が登録した食品（My食品）の両方を含みます。
+     * 指定されたユーザーが選択可能な食品リストを取得する。
+     * <p>
+     * 以下の2種類の食品を統合して返却する：
+     * 1. システム標準食品 (全ユーザー共通, user_idがNULL)
+     * 2. ユーザー自身のMy食品 (user_idが現在のユーザー)
+     * </p>
      *
      * @param username 現在のユーザー名
-     * @return 利用可能な食品リスト
+     * @return 利用可能な食品のリスト
      */
     public List<FoodItem> getAvailableFoods(String username) {
         User user = getUser(username);
@@ -41,8 +50,8 @@ public class FoodService {
     }
 
     /**
-     * 当日の食事記録一覧を取得します。
-     * 検索範囲は当日の 00:00:00 から 23:59:59 までとします。
+     * ユーザーの「今日」の食事記録一覧を取得する。
+     * サーバーの日時を基準に、当日の 00:00:00 から 23:59:59 までのデータを検索する。
      *
      * @param username 現在のユーザー名
      * @return 今日のMealLogリスト
@@ -50,7 +59,7 @@ public class FoodService {
     public List<MealLog> getTodayMealLogs(String username) {
         User user = getUser(username);
 
-        // 当日の開始・終了時刻を設定して検索範囲を指定
+        // 当日の範囲を設定 (例: 2025-01-01 00:00:00 ～ 23:59:59)
         LocalDateTime start = LocalDate.now().atStartOfDay();
         LocalDateTime end = LocalDate.now().atTime(LocalTime.MAX);
 
@@ -58,12 +67,17 @@ public class FoodService {
     }
 
     /**
-     * 食品マスタ（FoodItem）を選択して食事を記録します。
-     * マスタデータの変更に影響されないよう、記録時点での食品名とカロリーをスナップショットとして保存します。
+     * 食品マスタ（FoodItem）を選択して食事を記録する。
+     * <p>
+     * 選択された食品マスタの情報を元に、摂取カロリーを計算して保存する。
+     * 重要な点として、食品名やカロリーはマスタへの参照だけでなく、
+     * ログ自体にも値をコピー（スナップショット保存）する。
+     * </p>
      *
      * @param username   現在のユーザー名
      * @param foodItemId 選択された食品マスタID
-     * @param amount     摂取量（単位に対する倍率）
+     * @param amount     摂取量（マスタの単位に対する倍率。例: 1.5倍）
+     * @throws IllegalArgumentException 指定されたIDの食品が存在しない場合
      */
     public void recordMealFromMaster(String username, Long foodItemId, Double amount) {
         User user = getUser(username);
@@ -72,7 +86,7 @@ public class FoodService {
 
         MealLog log = new MealLog();
         log.setUser(user);
-        log.setFoodItem(foodItem); // マスタとの紐付けを保持
+        log.setFoodItem(foodItem); // マスタとのリンクも一応残す
 
         // スナップショット保存: マスタの内容が変わっても履歴が変わらないように値をコピー
         log.setName(foodItem.getName());
@@ -88,33 +102,36 @@ public class FoodService {
     }
 
     /**
-     * 食品マスタを使用せず、手入力で食事を記録します。
+     * 食品マスタを使用せず、手入力（アドホック）で食事を記録する。
+     * コンビニ商品や、マスタに登録するまでもない食事の記録に使用する。
      *
      * @param username 現在のユーザー名
      * @param name     食品名
-     * @param calories 合計カロリー
+     * @param calories 合計カロリー (kcal)
      */
     public void recordManualMeal(String username, String name, int calories) {
         User user = getUser(username);
 
         MealLog log = new MealLog();
         log.setUser(user);
-        log.setFoodItem(null); // マスタ紐付けなし
+        log.setFoodItem(null); // マスタ参照なし
         log.setName(name);
         log.setCalories(calories);
-        log.setAmount(1.0); // 手入力の場合は便宜上1.0とする
+        log.setAmount(1.0); // 手入力の場合は倍率概念がないため便宜上1.0とする
         log.setEatenAt(LocalDateTime.now());
 
         mealLogRepository.save(log);
     }
 
     /**
-     * 指定された食事記録を削除します。
-     * 他人のデータを削除できないよう、所有者チェックを行います。
+     * 指定された食事記録を削除する。
+     * セキュリティ対策として、削除リクエストを出したユーザーが
+     * その記録の所有者であるかをチェックする。
      *
      * @param logId    削除対象のログID
      * @param username リクエストしたユーザー名
-     * @throws SecurityException 所有者でない場合にスロー
+     * @throws SecurityException 所有者でないユーザーが削除を試みた場合
+     * @throws IllegalArgumentException 指定されたIDのログが存在しない場合
      */
     public void deleteMealLog(Long logId, String username) {
         MealLog log = mealLogRepository.findById(logId)
@@ -126,6 +143,9 @@ public class FoodService {
         mealLogRepository.delete(log);
     }
 
+    /**
+     * ユーザー名からUserエンティティを取得するヘルパーメソッド。
+     */
     private User getUser(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));

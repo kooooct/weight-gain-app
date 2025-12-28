@@ -15,7 +15,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import java.util.List;
 
 /**
- * 画面表示（ビュー）を制御するメインコントローラー。
+ * アプリケーションの画面遷移を制御するメインコントローラー。
+ * トップページ（ダッシュボード）の表示用データ構築を担当する。
  */
 @Controller
 @RequiredArgsConstructor
@@ -25,48 +26,48 @@ public class WebController {
     private final BmrService bmrService;
 
     /**
-     * ダッシュボード（トップページ）を表示します。
-     * 今日の食事記録、カロリー進捗、選択可能な食品リストをViewに渡します。
+     * ダッシュボード画面（トップページ）を表示する。
+     * <p>
+     * ログインユーザーの以下の情報を取得し、Viewへ渡す：
+     * 1. DashboardDto: カロリー目標と現在の摂取状況
+     * 2. history: 今日の食事記録リスト
+     * 3. foodList: 記録追加用の食品マスタリスト
+     * </p>
      *
-     * @param model       画面に渡すデータモデル
-     * @param userDetails 認証済みユーザー情報
-     * @return テンプレート名 (index)
+     * @param model       画面表示用データモデル
+     * @param userDetails Spring Securityによって注入される認証済みユーザー情報
+     * @return テンプレート名 ("index")
      */
     @GetMapping("/")
     public String index(Model model, @AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
 
-        // 1. 今日の食事履歴を取得 (DB修正後のMealLogを使用)
+        // 1. 今日の食事履歴を取得
         List<MealLog> todayLogs = foodService.getTodayMealLogs(username);
 
-        // 2. 合計摂取カロリーを計算 (JavaストリームAPIで合算)
+        // 2. 今日の合計摂取カロリーを計算 (Stream API使用)
         int currentCalories = todayLogs.stream()
                 .mapToInt(MealLog::getCalories)
                 .sum();
 
-        // 3. 目標カロリーを取得 (BMRサービスから)
-        // ※まだプロフィール登録していない場合のハンドリングが必要かも
-        int targetCalories = 2200; // 仮の初期値（エラー回避用）
-        try {
-            targetCalories = bmrService.calculateTargetCalories(username);
-        } catch (Exception e) {
-            // プロフィール未設定時は仮の値を使い続ける、またはプロフィール画面へ誘導するフラグを立てる等の処理
-        }
+        // 3. 目標カロリーを取得
+        // プロフィール未設定時はService側でデフォルト値が返されるため、例外処理は不要
+        int targetCalories = bmrService.calculateTargetCalories(username);
 
-        // 4. DTOに詰める
+        // 4. 表示用DTOを作成 (目標 - 現在 = 残り)
         DashboardDto dashboard = new DashboardDto(
                 targetCalories,
                 currentCalories,
                 targetCalories - currentCalories
         );
 
-        // 5. 選択用の食品リストを取得 (マスタデータ)
+        // 5. 食事記録プルダウン用の食品リストを取得
         List<FoodItem> foodList = foodService.getAvailableFoods(username);
 
-        // Modelに登録してHTMLへ渡す
+        // Viewへデータを渡す
         model.addAttribute("dashboard", dashboard);
-        model.addAttribute("history", todayLogs); // 名前を "foods" から "history" に変更
-        model.addAttribute("foodList", foodList); // プルダウン選択用
+        model.addAttribute("history", todayLogs); // View側では ${history} で参照
+        model.addAttribute("foodList", foodList); // View側では ${foodList} で参照
 
         return "index";
     }

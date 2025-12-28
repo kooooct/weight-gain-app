@@ -11,7 +11,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 /**
- * 基礎代謝および目標カロリーの計算を行うサービスクラス。
+ * 基礎代謝(BMR)および増量目標カロリーの計算ロジックを提供するサービスクラス。
+ * Mifflin-St Jeor式を用いてBMRを算出し、活動レベルに応じた係数を掛けてTDEEを求める。
  */
 @Service
 @RequiredArgsConstructor
@@ -19,11 +20,32 @@ public class BmrService {
 
     private final UserRepository userRepository;
 
+    // === 定数定義 (マジックナンバーの解消) ===
+
+    /** プロフィール未設定時のデフォルト目標カロリー (kcal) */
+    private static final int DEFAULT_TARGET_CALORIES = 2200;
+
+    /** 増量のためにTDEEに上乗せする余剰カロリー (kcal) */
+    private static final int SURPLUS_CALORIES_FOR_GAIN = 300;
+
+    // Mifflin-St Jeor計算式の係数
+    private static final double WEIGHT_MULTIPLIER = 10.0;
+    private static final double HEIGHT_MULTIPLIER = 6.25;
+    private static final double AGE_MULTIPLIER = 5.0;
+    private static final int MALE_OFFSET = 5;
+    private static final int FEMALE_OFFSET = -161;
+
+    // 活動レベル係数
+    private static final double ACTIVITY_FACTOR_SEDENTARY = 1.2;   // ほぼ運動しない
+    private static final double ACTIVITY_FACTOR_LOW = 1.375;       // 軽い運動
+    private static final double ACTIVITY_FACTOR_MODERATE = 1.55;   // 中程度の運動
+    private static final double ACTIVITY_FACTOR_HIGH = 1.725;      // 激しい運動
+
     /**
-     * 登録済みユーザー情報に基づき、目標カロリーを計算して返却する。
-     * プロフィール情報が不足している場合はデフォルト値を返す。
+     * 登録済みユーザー情報に基づき、1日の目標摂取カロリーを計算して返却する。
+     * ユーザーのプロフィール情報（身長・体重・年齢）が不足している場合は、安全なデフォルト値を返す。
      *
-     * @param username 対象のユーザー名
+     * @param username 計算対象のユーザー名
      * @return 1日の目標摂取カロリー (kcal)
      */
     public int calculateTargetCalories(String username) {
@@ -31,11 +53,11 @@ public class BmrService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         if (user.getWeight() == null || user.getHeight() == null || user.getAge() == null) {
-            return 2200; // デフォルト値
+            return DEFAULT_TARGET_CALORIES;
         }
 
         BmrRequest request = new BmrRequest();
-        request.setHeight(Double.valueOf(user.getHeight()));
+        request.setHeight(user.getHeight());
         request.setWeight(user.getWeight());
         request.setAge(user.getAge());
         request.setGender(convertGender(user.getGender()));
@@ -47,17 +69,21 @@ public class BmrService {
     }
 
     /**
-     * リクエストDTOに基づきBMR、TDEE、目標カロリーを計算する。
+     * リクエストDTO（身体データ）に基づき、以下の3つの指標を計算する。
+     * 1. BMR (基礎代謝)
+     * 2. TDEE (総エネルギー消費量)
+     * 3. Target Calories (増量用目標カロリー)
      *
-     * @param request 計算用パラメータ
-     * @return 計算結果レスポンス
+     * @param request 計算用パラメータ (身長, 体重, 年齢, 性別, 活動レベル)
+     * @return 計算結果を含むレスポンスDTO
      */
     public BmrResponse calculate(BmrRequest request){
         double bmr = calculateBmr(request);
         double tdee = calculateTdee(bmr, request.getActivityLevel());
-        double targetCalories = tdee + 300; // 増量用サープラス設定
+        double targetCalories = tdee + SURPLUS_CALORIES_FOR_GAIN;
 
         BmrResponse response = new BmrResponse();
+        // 小数点第1位で四捨五入して整形
         response.setBmr(Math.round(bmr * 10.0) / 10.0);
         response.setTdee(Math.round(tdee * 10.0) / 10.0);
         response.setTargetCalories(Math.round(targetCalories * 10.0) / 10.0);
@@ -66,27 +92,38 @@ public class BmrService {
         return response;
     }
 
+    /**
+     * Mifflin-St Jeor式を用いて基礎代謝(BMR)を計算する。
+     * 式: (10 × 体重kg) + (6.25 × 身長cm) - (5 × 年齢) + s
+     */
     private double calculateBmr(BmrRequest req){
-        double baseResult = (10 * req.getWeight()) + (6.25 * req.getHeight()) - (5 * req.getAge());
+        double baseResult = (WEIGHT_MULTIPLIER * req.getWeight())
+                + (HEIGHT_MULTIPLIER * req.getHeight())
+                - (AGE_MULTIPLIER * req.getAge());
+
         if (req.getGender() == Gender.MALE) {
-            return baseResult + 5;
+            return baseResult + MALE_OFFSET;
         } else {
-            return baseResult - 161;
+            return baseResult + FEMALE_OFFSET;
         }
     }
 
+    /**
+     * 活動レベルに基づいてTDEE(総エネルギー消費量)を算出する。
+     * BMRに活動係数を乗算する。
+     */
     private double calculateTdee(double bmr, ActivityLevel level) {
-        if (level == null) return bmr * 1.2;
+        if (level == null) return bmr * ACTIVITY_FACTOR_SEDENTARY;
         switch (level) {
-            case LOW: return bmr * 1.375;
-            case MID: return bmr * 1.55;
-            case HIGH: return bmr * 1.725;
-            default: return bmr * 1.2;
+            case LOW: return bmr * ACTIVITY_FACTOR_LOW;
+            case MID: return bmr * ACTIVITY_FACTOR_MODERATE;
+            case HIGH: return bmr * ACTIVITY_FACTOR_HIGH;
+            default: return bmr * ACTIVITY_FACTOR_SEDENTARY;
         }
     }
 
     private String createAdviceMessage(double target) {
-        return "太るためには、1日約 " + (int)target + "kcal を目指して食べましょう！Futoruと一緒に頑張りましょう。";
+        return "太るためには、1日約 " + (int)target + "kcal を目指して食べましょう！";
     }
 
     private Gender convertGender(String genderStr) {

@@ -11,7 +11,11 @@ import java.util.Collections;
 
 /**
  * ユーザー認証情報および身体データを管理するエンティティクラス。
- * Spring SecurityのUserDetailsを実装し、認可処理に必要な権限情報も保持する。
+ * <p>
+ * Spring SecurityのUserDetailsインターフェースを実装しており、
+ * 認証（ログイン）および認可（権限チェック）の主役となるクラス。
+ * BMR計算に必要な身体データ（身長、体重など）もここで保持する。
+ * </p>
  */
 @Entity
 @Table(name = "users")
@@ -22,9 +26,11 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** ログインID（一意制約あり） */
     @Column(unique = true, nullable = false)
     private String username;
 
+    /** ハッシュ化されたパスワード */
     @Column(nullable = false)
     private String password;
 
@@ -46,12 +52,16 @@ public class User implements UserDetails {
     /** 活動レベル ("LOW", "MID", "HIGH") */
     private String activityLevel;
 
-    /** 目標カロリー (手動設定用、未設定時は自動計算を使用) */
+    /**
+     * 目標カロリー (kcal)。
+     * 手動で目標値を設定した場合に値が入る。NULLの場合は自動計算値を使用する想定。
+     */
     private Integer targetCalories;
 
     /**
-     * ユーザーに付与された権限を返却する。
-     * roleフィールドが設定されている場合、SimpleGrantedAuthorityとして返却する。
+     * ユーザーに付与された権限リストを返却する。
+     *
+     * @return 権限オブジェクトのリスト。roleフィールドの値をそのまま権限として扱う。
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -61,21 +71,37 @@ public class User implements UserDetails {
         return Collections.singletonList(new SimpleGrantedAuthority(role));
     }
 
+    /**
+     * アカウントの有効期限が切れていないかを判定する。
+     * 現状は管理しないため、常に true (有効) を返す。
+     */
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
 
+    /**
+     * アカウントがロックされていないかを判定する。
+     * 現状は管理しないため、常に true (ロックされていない) を返す。
+     */
     @Override
     public boolean isAccountNonLocked() {
         return true;
     }
 
+    /**
+     * パスワードの有効期限が切れていないかを判定する。
+     * 現状は管理しないため、常に true (有効) を返す。
+     */
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
+    /**
+     * アカウントが有効(Enabled)かどうかを判定する。
+     * メール認証等を導入する場合はここを制御するが、現状は常に true を返す。
+     */
     @Override
     public boolean isEnabled() {
         return true;
