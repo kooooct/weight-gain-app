@@ -37,3 +37,6 @@ deploy.bat
 
 ### Environment ###
 .env
+
+### Archive ###
+archive
