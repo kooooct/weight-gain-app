@@ -2,12 +2,8 @@
 
 REM ========================================================
 REM  Spring Boot Application Deployment Script
-REM  Target Environment: AWS EC2 (Amazon Linux 2023)
+REM  Target Environment: AWS EC2 Amazon Linux 2023
 REM ========================================================
-
-REM このファイルをコピーし.templateを外して使用する。
-REM コメントがあるとデプロイができない問題があり解決できなかったため、
-REM コメント(REM)はすべて削除してからデプロイするようにする。
 
 REM --------------------------------------------------------
 REM  1. Configuration
@@ -22,7 +18,7 @@ set EC2_HOST=IPアドレス
 REM アプリケーション定義
 REM APP_NAME: pom.xml の <artifactId> と一致させること
 set APP_NAME=futoru
-REM SERVICE_NAME: Systemd のユニットファイル名 (.serviceを除く) と一致させること
+REM SERVICE_NAME: Systemd のユニットファイル名と一致させること
 set SERVICE_NAME=futoru-app
 
 REM --------------------------------------------------------
@@ -30,7 +26,7 @@ REM  2. Build Process
 REM --------------------------------------------------------
 echo [1/4] Executing Maven Build...
 
-REM 以前のビルド成果物を削除(clean)し、ディレクトリ内に
+REM 以前のビルド成果物を削除し、ディレクトリ内に
 REM 最新のJARファイルのみが存在する状態を保証してパッケージングを実行
 call .\mvnw clean package -DskipTests
 
@@ -49,7 +45,7 @@ REM  3. File Transfer
 REM --------------------------------------------------------
 echo [2/4] Uploading Artifact to EC2...
 
-REM リモートサーバー上にリリース用ディレクトリが存在することを確認（未存在時は作成）
+REM リモートサーバー上にリリース用ディレクトリが存在することを確認
 ssh -i %KEY_PATH% %EC2_USER%@%EC2_HOST% "mkdir -p /home/ec2-user/releases"
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Failed to verify/create remote directory.
@@ -59,7 +55,7 @@ if %ERRORLEVEL% neq 0 (
 REM リリース用ディレクトリへJARファイルを転送
 scp -i %KEY_PATH% target\%JAR_FILE% %EC2_USER%@%EC2_HOST%:/home/ec2-user/releases/%JAR_FILE%
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] File transfer (SCP) failed.
+    echo [ERROR] File transfer failed.
     exit /b %ERRORLEVEL%
 )
 
@@ -78,11 +74,11 @@ if %ERRORLEVEL% neq 0 (
 )
 
 REM --------------------------------------------------------
-REM  5. Cleanup (Retention Policy)
+REM  5. Cleanup
 REM --------------------------------------------------------
 echo [4/4] Cleaning up old releases...
 
-REM ディスク容量確保のため、最新の5世代(5バージョン)を残して古いファイルを削除
+REM ディスク容量確保のため、最新の5バージョンを残して古いファイルを削除
 ssh -i %KEY_PATH% %EC2_USER%@%EC2_HOST% "cd /home/ec2-user/releases && ls -1t %APP_NAME%-*.jar | tail -n +6 | xargs -r rm"
 
 echo ========================================================
