@@ -1,0 +1,73 @@
+name: Deploy Spring Boot App to EC2
+
+# トリガー設定: mainブランチへのプッシュ時に実行
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. ソースコードのチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. JDK 21 (Amazon Corretto) のセットアップ
+      #    Mavenの依存関係キャッシュも有効化してビルド時間を短縮
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          cache: 'maven'
+
+      # 3. Mavenによるビルドとテスト
+      #    CI環境なので、ここでテスト(JUnit等)が失敗するとデプロイは中止される
+      - name: Build with Maven
+        run: ./mvnw clean package
+
+      # 4. 生成されたJARファイルをEC2へ転送 (SCP)
+      #    targetディレクトリ内のJARのみを releases ディレクトリへ送る
+      - name: Copy JAR artifact to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "target/futoru-*.jar"
+          target: "/home/${{ secrets.EC2_USER }}/releases/"
+          strip_components: 1 # 転送時に 'target/' ディレクトリ階層を除去
+
+      # 5. SSHでサーバーに入り、アプリケーションを再起動 (Atomic Deployment)
+      #    シンボリックリンクの切り替えにより、ダウンタイムを最小限に抑える
+      - name: Restart Application via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # デプロイ先ディレクトリの定義
+            RELEASE_DIR="/home/${{ secrets.EC2_USER }}/releases"
+            Current_LINK="/home/${{ secrets.EC2_USER }}/current-app.jar"
+            SERVICE_NAME="futoru-app"
+
+            # 1. 最新のJARファイル名を特定 (転送されたばかりのもの)
+            NEW_JAR=$(ls -t $RELEASE_DIR/futoru-*.jar | head -n 1)
+            
+            echo "Starting deployment for: $NEW_JAR"
+            
+            # 2. シンボリックリンクをアトミックに更新 (ln -sfn)
+            ln -sfn $NEW_JAR $Current_LINK
+            
+            # 3. Systemdサービスを再起動
+            sudo systemctl restart $SERVICE_NAME
+            
+            # 4. 世代管理: 最新の5バージョンを残して古いファイルを削除
+            cd $RELEASE_DIR
+            ls -1t futoru-*.jar | tail -n +6 | xargs -r rm
+            
+            echo "Deployment completed successfully."
