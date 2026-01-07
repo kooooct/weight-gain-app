@@ -1,6 +1,6 @@
 services:
   app:
-    build: .
+    image: ghcr.io/kooooct/futoru:latest
     container_name: futoru-app
     ports:
       - "8080:8080"
