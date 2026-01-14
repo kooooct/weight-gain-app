@@ -2,7 +2,6 @@ package org.example.futoru.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.futoru.dto.DashboardDto;
-import org.example.futoru.entity.FoodItem;
 import org.example.futoru.entity.MealLog;
 import org.example.futoru.service.BmrService;
 import org.example.futoru.service.FoodService;
@@ -29,9 +28,11 @@ public class WebController {
      * ダッシュボード画面（トップページ）を表示する。
      * <p>
      * ログインユーザーの以下の情報を取得し、Viewへ渡す：
-     * 1. DashboardDto: カロリー目標と現在の摂取状況
-     * 2. history: 今日の食事記録リスト
-     * 3. foodList: 記録追加用の食品マスタリスト
+     * 1. activePage: ナビゲーションバーの表示制御用フラグ
+     * 2. DashboardDto: カロリー目標と現在の摂取状況
+     * 3. progress: 目標に対する進捗率（プログレスバー用）
+     * 4. history: 今日の食事記録リスト
+     * 5. foodList: 記録追加用の食品マスタリスト
      * </p>
      *
      * @param model       画面表示用データモデル
@@ -42,32 +43,40 @@ public class WebController {
     public String index(Model model, @AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
 
-        // 1. 今日の食事履歴を取得
+        // 1. ナビゲーションバー用設定 (ホームをアクティブ表示)
+        model.addAttribute("activePage", "home");
+
+        // 2. 今日の食事履歴を取得
         List<MealLog> todayLogs = foodService.getTodayMealLogs(username);
 
-        // 2. 今日の合計摂取カロリーを計算 (Stream API使用)
+        // 3. 今日の合計摂取カロリーを計算 (Stream API使用)
         int currentCalories = todayLogs.stream()
                 .mapToInt(MealLog::getCalories)
                 .sum();
 
-        // 3. 目標カロリーを取得
-        // プロフィール未設定時はService側でデフォルト値が返されるため、例外処理は不要
+        // 4. 目標カロリーを取得 (BmrServiceを使用)
         int targetCalories = bmrService.calculateTargetCalories(username);
 
-        // 4. 表示用DTOを作成 (目標 - 現在 = 残り)
+        // 5. 表示用DTOを作成 (目標 - 現在 = 残り)
         DashboardDto dashboard = new DashboardDto(
                 targetCalories,
                 currentCalories,
                 targetCalories - currentCalories
         );
-
-        // 5. 食事記録プルダウン用の食品リストを取得
-        List<FoodItem> foodList = foodService.getAvailableFoods(username);
-
-        // Viewへデータを渡す
         model.addAttribute("dashboard", dashboard);
-        model.addAttribute("history", todayLogs); // View側では ${history} で参照
-        model.addAttribute("foodList", foodList); // View側では ${foodList} で参照
+
+        // 6. プログレスバーの進捗率計算
+        // カロリーオーバーしても表示が崩れないよう最大100%に制限する
+        int progress = 0;
+        if (targetCalories > 0) {
+            progress = (int) ((double) currentCalories / targetCalories * 100);
+            progress = Math.min(progress, 100);
+        }
+        model.addAttribute("progress", progress);
+
+        // 7. その他のデータをViewへ渡す
+        model.addAttribute("history", todayLogs);
+        model.addAttribute("foodList", foodService.getAvailableFoods(username));
 
         return "index";
     }
