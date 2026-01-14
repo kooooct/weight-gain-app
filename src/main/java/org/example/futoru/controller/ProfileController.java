@@ -3,6 +3,7 @@ package org.example.futoru.controller;
 import org.example.futoru.entity.User;
 import org.example.futoru.service.UserService;
 import org.example.futoru.repository.UserRepository;
+import org.example.futoru.dto.ActivityLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,6 +18,27 @@ import java.security.Principal;
 public class ProfileController {
     private final UserRepository userRepository;
     private final UserService userService;
+
+    // 初回設定画面を表示
+    @GetMapping("/profile/init")
+    public String showProfileInitForm() {
+        return "profile-init"; // templates/profile-init.html を表示
+    }
+
+    // 初回設定の保存処理
+    @PostMapping("/profile/init")
+    public String initProfile(
+            @RequestParam Double height,
+            @RequestParam Double weight,
+            @RequestParam Integer age,
+            @RequestParam String gender,
+            @RequestParam ActivityLevel activityLevel,
+            Principal principal
+    ) {
+        userService.updateProfile(principal.getName(), height, weight, age, gender, activityLevel);
+
+        return "redirect:/";
+    }
 
     // プロフィール編集画面を表示
     @GetMapping("/profile")
@@ -35,7 +57,7 @@ public class ProfileController {
             @RequestParam Double weight,
             @RequestParam Integer age,
             @RequestParam String gender,
-            @RequestParam Integer activityLevel,
+            @RequestParam ActivityLevel activityLevel,
             Principal principal
     ) {
         userService.updateProfile(principal.getName(), height, weight, age, gender, activityLevel);
