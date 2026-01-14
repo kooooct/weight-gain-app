@@ -5,6 +5,7 @@ import org.example.futoru.dto.DashboardDto;
 import org.example.futoru.entity.MealLog;
 import org.example.futoru.service.BmrService;
 import org.example.futoru.service.FoodService;
+import org.example.futoru.service.UserService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -23,6 +24,7 @@ public class WebController {
 
     private final FoodService foodService;
     private final BmrService bmrService;
+    private final UserService userService;
 
     /**
      * ダッシュボード画面（トップページ）を表示する。
@@ -42,6 +44,11 @@ public class WebController {
     @GetMapping("/")
     public String index(Model model, @AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
+
+        // プロフィール未入力の場合プロフィール登録画面へ送る
+        if (!userService.isProfileCompleted(username)) {
+            return "redirect:/profile/init";
+        }
 
         // 1. ナビゲーションバー用設定 (ホームをアクティブ表示)
         model.addAttribute("activePage", "home");

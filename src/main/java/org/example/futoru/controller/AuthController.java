@@ -2,6 +2,10 @@ package org.example.futoru.controller;
 
 import org.example.futoru.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,7 +44,20 @@ public class AuthController {
     public String register(@RequestParam String username, @RequestParam String password, Model model) {
         try {
             userService.registerUser(username, password);
-            return "redirect:/login";
+
+            // 今作ったユーザー情報を取得
+            UserDetails userDetails = userService.loadUserByUsername(username);
+
+            // 認証トークンを作成してセキュリティコンテキスト(金庫)に入れる
+            Authentication auth = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    password,
+                    userDetails.getAuthorities()
+            );
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            return "redirect:/profile/init";
+
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", "そのユーザーIDは既に使用されています。");
             return "register";

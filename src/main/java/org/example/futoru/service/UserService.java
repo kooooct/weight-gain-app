@@ -57,6 +57,24 @@ public class UserService implements UserDetailsService {
     }
 
     /**
+     * ユーザーのプロフィール入力が完了しているか判定する。
+     * 身長、年齢、性別、活動レベルがすべて登録されていれば true を返す。
+     *
+     * @param username 判定するユーザー名
+     * @return 完了していればtrue
+     */
+    public boolean isProfileCompleted(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 必須項目がnullでないかチェック
+        return user.getHeight() != null &&
+                user.getAge() != null &&
+                user.getGender() != null &&
+                user.getActivityLevel() != null;
+    }
+
+    /**
      * ユーザーのプロフィール情報を更新し、それに基づいて目標カロリーを自動再計算して保存する。
      *
      * @param username      更新対象のユーザー名
