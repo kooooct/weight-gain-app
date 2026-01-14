@@ -44,6 +44,9 @@ public class UserService implements UserDetailsService {
      * @param password 生パスワード（平文）
      */
     public void registerUser(String username, String password) {
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new IllegalArgumentException();
+        }
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));

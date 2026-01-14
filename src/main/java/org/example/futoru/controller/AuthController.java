@@ -3,6 +3,7 @@ package org.example.futoru.controller;
 import org.example.futoru.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,15 +30,21 @@ public class AuthController {
     /**
      * ユーザーの新規登録処理を実行する。
      * 入力された情報でユーザーを作成し、成功時はログイン画面へリダイレクトする。
+     * 重複エラー時は登録画面に戻し、メッセージを表示する。
      *
      * @param username 登録するユーザー名
      * @param password 登録するパスワード（平文）
      * @return ログイン画面へのリダイレクトパス
      */
     @PostMapping("/register")
-    public String register(@RequestParam String username, @RequestParam String password) {
-        userService.registerUser(username, password);
-        return "redirect:/login";
+    public String register(@RequestParam String username, @RequestParam String password, Model model) {
+        try {
+            userService.registerUser(username, password);
+            return "redirect:/login";
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", "そのユーザーIDは既に使用されています。");
+            return "register";
+        }
     }
 
     /**
