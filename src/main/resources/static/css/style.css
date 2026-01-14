@@ -1,0 +1,40 @@
+/* 全体のフォント設定 */
+body {
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    background-color: #f5f7fa; /* 薄いグレーの背景 */
+}
+
+/* Futoruのテーマカラー (スクショのシアン色) */
+.bg-theme {
+    background-color: #00B4D8 !important; /* 少し濃いめのシアン */
+}
+.text-theme {
+    color: #00B4D8 !important;
+}
+.btn-theme {
+    background-color: #00B4D8;
+    color: white;
+    border: none;
+    font-weight: bold;
+}
+.btn-theme:hover {
+    background-color: #0096B4; /* ホバー時は少し暗く */
+    color: white;
+}
+
+/* ログイン画面のカード */
+.login-card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* ふんわりした影 */
+    padding: 2rem;
+}
+
+/* グラフやカロリー表示のカード */
+.dashboard-card {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    padding: 20px;
+    height: 100%; /* 高さを揃える */
+}
