@@ -1,6 +1,7 @@
 package org.example.futoru.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.futoru.dto.ActivityLevel;
 import org.example.futoru.entity.User;
 import org.example.futoru.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -48,7 +49,7 @@ public class UserService implements UserDetailsService {
         user.setPassword(passwordEncoder.encode(password));
         user.setRole("USER"); // デフォルト権限
 
-        // その他のフィールドはnullのままでOK（後でプロフィール設定する）
+        // その他のフィールドはnullのままでOK
         userRepository.save(user);
     }
 
@@ -60,36 +61,32 @@ public class UserService implements UserDetailsService {
      * @param weight        体重 (kg)
      * @param age           年齢
      * @param gender        性別 ("MALE" または "FEMALE")
-     * @param activityLevel 活動レベル (1:低い, 2:普通, 3:高い)
+     * @param activityLevel 活動レベル (Enum: LOW, MID, HIGH)
      * @throws RuntimeException 指定されたユーザーが見つからない場合
      */
     @Transactional
-    public void updateProfile(String username, Double height, Double weight, Integer age, String gender, Integer activityLevel) {
-        // 1. ユーザーを取得 (存在しない場合はエラー)
+    public void updateProfile(String username, Double height, Double weight, Integer age, String gender, ActivityLevel activityLevel) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 2. データをセット
         user.setHeight(height);
         user.setWeight(weight);
         user.setAge(age);
         user.setGender(gender);
-        user.setActivityLevel(String.valueOf(activityLevel)); // Enum変換などは一旦簡易的にStringで保存
+        user.setActivityLevel(activityLevel.name());
 
-        // 3. 目標カロリーを設定する (簡易計算)
         int targetCalories = calculateTargetCalories(height, weight, age, gender, activityLevel);
         user.setTargetCalories(targetCalories);
 
-        // 4. 保存
         userRepository.save(user);
     }
 
     /**
      * プロフィール情報から目標カロリーを算出する内部メソッド。
      * 基礎代謝(BMR) × 活動レベル係数 + 増量分(300kcal) で計算する。
-     * ※ BmrServiceクラスとロジックが重複しているが、現状は独立して計算を行う。
+     * @param activityLevel 活動レベル
      */
-    private int calculateTargetCalories(Double height, Double weight, Integer age, String gender, Integer activityLevel) {
+    private int calculateTargetCalories(Double height, Double weight, Integer age, String gender, ActivityLevel activityLevel) {
         double bmr;
         // Mifflin-St Jeor式を使用
         if ("MALE".equals(gender)) {
@@ -99,13 +96,20 @@ public class UserService implements UserDetailsService {
         }
 
         double tdee;
-        if (activityLevel == null) activityLevel = 1;
+        if (activityLevel == null) activityLevel = ActivityLevel.LOW;
 
         switch (activityLevel) {
-            case 1: tdee = bmr * 1.2; break;  // ほぼ運動しない
-            case 2: tdee = bmr * 1.55; break; // 適度な運動
-            case 3: tdee = bmr * 1.9; break;  // 激しい運動
-            default: tdee = bmr * 1.2;
+            case LOW:
+                tdee = bmr * 1.2;
+                break;
+            case MID:
+                tdee = bmr * 1.55;
+                break;
+            case HIGH:
+                tdee = bmr * 1.725;
+                break;
+            default:
+                tdee = bmr * 1.2;
         }
 
         return (int) (tdee + 300);
