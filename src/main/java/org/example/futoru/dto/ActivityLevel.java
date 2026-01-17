@@ -1,29 +1,34 @@
 package org.example.futoru.dto;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
 /**
- * ユーザーの日常的な活動レベル（運動強度）を表す列挙型。
- * BMR（基礎代謝）計算およびTDEE（総エネルギー消費量）の算出に使用される。
+ * ユーザーの日常的な活動レベル（運動強度）。
+ * BMR計算用の補正係数を保持する。
  */
+@Getter
+@RequiredArgsConstructor
 public enum ActivityLevel {
 
     /**
      * 活動レベル：低
-     * デスクワーク中心、または運動習慣がほとんどない場合。
-     * (補正係数目安: 1.2 - 1.375)
+     * デスクワーク中心、または運動習慣がほとんどない。
      */
-    LOW,
+    LOW(1.2),
 
     /**
      * 活動レベル：中
-     * 立ち仕事が多い、または週に数回の適度な運動を行う場合。
-     * (補正係数目安: 1.55)
+     * 立ち仕事が多い、または週に数回の適度な運動。
      */
-    MID,
+    MID(1.55),
 
     /**
      * 活動レベル：高
-     * 肉体労働、または毎日激しい運動を行う場合。
-     * (補正係数目安: 1.725)
+     * 肉体労働、または毎日激しい運動。
      */
-    HIGH
+    HIGH(1.725);
+
+    // 補正係数（BmrService計算用）
+    private final double multiplier;
 }
