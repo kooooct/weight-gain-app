@@ -10,6 +10,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 
@@ -35,7 +36,7 @@ public class ProfileController {
             @RequestParam ActivityLevel activityLevel,
             Principal principal
     ) {
-        userService.updateProfile(principal.getName(), height, weight, age, gender, activityLevel);
+        userService.saveInitialProfile(principal.getName(), height, weight, age, gender, activityLevel);
 
         return "redirect:/";
     }
@@ -54,13 +55,14 @@ public class ProfileController {
     @PostMapping("/profile")
     public String updateProfile(
             @RequestParam Double height,
-            @RequestParam Double weight,
             @RequestParam Integer age,
             @RequestParam String gender,
             @RequestParam ActivityLevel activityLevel,
-            Principal principal
+            Principal principal,
+            RedirectAttributes redirectAttributes
     ) {
-        userService.updateProfile(principal.getName(), height, weight, age, gender, activityLevel);
+        userService.updateProfile(principal.getName(), height, age, gender, activityLevel);
+        redirectAttributes.addFlashAttribute("successMessage", "プロフィールを更新しました！");
         return "redirect:/profile";
     }
 }

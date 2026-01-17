@@ -2,52 +2,103 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>プロフィール設定 - Futoru</title>
-    <style>
-        body { font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #f4f4f9; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
-        button { width: 100%; padding: 12px; background: #ff6b6b; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
 </head>
 <body>
-<div class="card">
-    <h2>👤 プロフィール設定</h2>
-    <p>あなたの身体データを入力してください。<br>最適な増量カロリーを自動計算します。</p>
 
-    <form th:action="@{/profile}" method="post">
-        <div class="form-group">
-            <label>身長 (cm)</label>
-            <input type="number" step="0.1" name="height" th:value="${user.height}" required>
+<div th:replace="~{common/navbar :: navbar('profile')}"></div>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h3 class="fw-bold mb-3">プロフィール設定</h3>
+                    <p class="text-muted mb-4 small">
+                        あなたの身体データを入力してください。<br>
+                        最適な増量カロリーを自動計算します。
+                    </p>
+
+                    <form th:action="@{/profile}" method="post">
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">身長</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.1" class="form-control" name="height"
+                                           th:value="${user.height}" required>
+                                    <span class="input-group-text">cm</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">年齢</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="age"
+                                           th:value="${user.age}" required>
+                                    <span class="input-group-text">歳</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">性別</label>
+                            <select class="form-select" name="gender">
+                                <option value="MALE" th:selected="${user.gender == 'MALE'}">男性</option>
+                                <option value="FEMALE" th:selected="${user.gender == 'FEMALE'}">女性</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">普段の活動量</label>
+                            <select class="form-select" name="activityLevel">
+                                <option value="LOW" th:selected="${user.activityLevel == 'LOW'}">低い (デスクワーク中心)</option>
+                                <option value="MODERATE" th:selected="${user.activityLevel == 'MODERATE'}">普通 (立ち仕事・軽い運動)</option>
+                                <option value="HIGH" th:selected="${user.activityLevel == 'HIGH'}">高い (肉体労働・激しい運動)</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-theme py-2 fw-bold">保存して計算する</button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+
         </div>
-        <div class="form-group">
-            <label>体重 (kg)</label>
-            <input type="number" step="0.1" name="weight" th:value="${user.weight}" required>
-        </div>
-        <div class="form-group">
-            <label>年齢</label>
-            <input type="number" name="age" th:value="${user.age}" required>
-        </div>
-        <div class="form-group">
-            <label>性別</label>
-            <select name="gender">
-                <option value="MALE" th:selected="${user.gender == 'MALE'}">男性</option>
-                <option value="FEMALE" th:selected="${user.gender == 'FEMALE'}">女性</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>普段の活動量</label>
-            <select name="activityLevel">
-                <option value="1" th:selected="${user.activityLevel == 1}">低い (デスクワーク中心)</option>
-                <option value="2" th:selected="${user.activityLevel == 2}">普通 (立ち仕事・軽い運動)</option>
-                <option value="3" th:selected="${user.activityLevel == 3}">高い (肉体労働・激しい運動)</option>
-            </select>
-        </div>
-        <button type="submit">保存して計算する</button>
-    </form>
+    </div>
 </div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" th:if="${successMessage}">
+    <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fw-bold">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <span th:text="${successMessage}">保存しました</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // ID 'successToast' を持つ要素を探す
+        const toastEl = document.getElementById('successToast');
+
+        // もし要素があれば（＝メッセージが渡されていれば）、トーストを表示する
+        if (toastEl) {
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 }); // 3秒で消える
+            toast.show();
+        }
+    });
+</script>
+
 </body>
 </html>
