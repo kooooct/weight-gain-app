@@ -14,7 +14,7 @@ import java.util.Collections;
  * <p>
  * Spring SecurityのUserDetailsインターフェースを実装しており、
  * 認証（ログイン）および認可（権限チェック）の主役となるクラス。
- * BMR計算に必要な身体データ（身長、体重など）もここで保持する。
+ * BMR計算に必要な身体データもここで保持する。
  * </p>
  */
 @Entity
@@ -45,9 +45,6 @@ public class User implements UserDetails {
 
     /** 身長 (cm) */
     private Double height;
-
-    /** 体重 (kg) */
-    private Double weight;
 
     /** 活動レベル ("LOW", "MID", "HIGH") */
     private String activityLevel;

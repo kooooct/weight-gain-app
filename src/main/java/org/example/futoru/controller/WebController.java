@@ -6,12 +6,16 @@ import org.example.futoru.entity.MealLog;
 import org.example.futoru.service.BmrService;
 import org.example.futoru.service.FoodService;
 import org.example.futoru.service.UserService;
+import org.example.futoru.service.WeightLogService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -25,6 +29,7 @@ public class WebController {
     private final FoodService foodService;
     private final BmrService bmrService;
     private final UserService userService;
+    private final WeightLogService weightLogService;
 
     /**
      * ダッシュボード画面（トップページ）を表示する。
@@ -85,6 +90,21 @@ public class WebController {
         model.addAttribute("history", todayLogs);
         model.addAttribute("foodList", foodService.getAvailableFoods(username));
 
+        model.addAttribute("weightDates", weightLogService.getGraphLabels(username));
+        model.addAttribute("weightValues", weightLogService.getGraphValues(username));
+
         return "index";
+    }
+
+    @PostMapping("/weight/add")
+    public String addWeight(
+            @RequestParam("date") String datestr,
+            @RequestParam("weight") Double weight,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        LocalDate date = LocalDate.parse(datestr);
+
+        weightLogService.saveWeightLog(userDetails.getUsername(), date, weight);
+        return "redirect:/";
     }
 }

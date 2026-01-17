@@ -3,13 +3,17 @@ package org.example.futoru.service;
 import lombok.RequiredArgsConstructor;
 import org.example.futoru.dto.ActivityLevel;
 import org.example.futoru.entity.User;
+import org.example.futoru.entity.WeightLog;
 import org.example.futoru.repository.UserRepository;
+import org.example.futoru.repository.WeightLogRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 /**
  * ユーザー情報の管理（登録、更新、検索）を行うサービスクラス。
@@ -20,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final WeightLogRepository weightLogRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -58,20 +63,18 @@ public class UserService implements UserDetailsService {
 
     /**
      * ユーザーのプロフィール入力が完了しているか判定する。
-     * 身長、年齢、性別、活動レベルがすべて登録されていれば true を返す。
+     * 身長があり、かつ「体重ログが少なくとも1件ある」かどうかで判定
      *
      * @param username 判定するユーザー名
      * @return 完了していればtrue
      */
     public boolean isProfileCompleted(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByUsername(username).orElseThrow();
 
-        // 必須項目がnullでないかチェック
-        return user.getHeight() != null &&
-                user.getAge() != null &&
-                user.getGender() != null &&
-                user.getActivityLevel() != null;
+        // 最新の体重ログがあるかチェック
+        boolean hasWeightLog = weightLogRepository.findFirstByUserOrderByDateDesc(user).isPresent();
+
+        return user.getHeight() != null && hasWeightLog;
     }
 
     /**
@@ -91,10 +94,17 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         user.setHeight(height);
-        user.setWeight(weight);
         user.setAge(age);
         user.setGender(gender);
         user.setActivityLevel(activityLevel.name());
+
+        LocalDate today = LocalDate.now();
+        WeightLog log = weightLogRepository.findByUserAndDate(user, today)
+                .orElse(new WeightLog());
+        log.setUser(user);
+        log.setDate(today);
+        log.setWeight(weight);
+        weightLogRepository.save(log);
 
         int targetCalories = calculateTargetCalories(height, weight, age, gender, activityLevel);
         user.setTargetCalories(targetCalories);

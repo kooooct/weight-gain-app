@@ -6,7 +6,9 @@ import org.example.futoru.dto.BmrRequest;
 import org.example.futoru.dto.BmrResponse;
 import org.example.futoru.dto.Gender;
 import org.example.futoru.entity.User;
+import org.example.futoru.entity.WeightLog;
 import org.example.futoru.repository.UserRepository;
+import org.example.futoru.repository.WeightLogRepository;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 public class BmrService {
 
     private final UserRepository userRepository;
+    private final WeightLogRepository weightLogRepository;
 
     // === 定数定義 (マジックナンバーの解消) ===
 
@@ -52,13 +55,17 @@ public class BmrService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        if (user.getWeight() == null || user.getHeight() == null || user.getAge() == null) {
+        Double currentWeight = weightLogRepository.findFirstByUserOrderByDateDesc(user)
+                .map(WeightLog::getWeight)
+                .orElse(null);
+
+        if (currentWeight == null || user.getHeight() == null || user.getAge() == null) {
             return DEFAULT_TARGET_CALORIES;
         }
 
         BmrRequest request = new BmrRequest();
         request.setHeight(user.getHeight());
-        request.setWeight(user.getWeight());
+        request.setWeight(currentWeight);
         request.setAge(user.getAge());
         request.setGender(convertGender(user.getGender()));
         request.setActivityLevel(convertActivityLevel(user.getActivityLevel()));

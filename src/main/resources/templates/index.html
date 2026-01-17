@@ -15,8 +15,13 @@
     <div class="row mb-4">
 
         <div class="col-md-7 mb-3">
-            <div class="dashboard-card">
-                <h5 class="fw-bold mb-3">体重推移</h5>
+            <div class="dashboard-card h-100"> <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">体重推移</h5>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill"
+                        data-bs-toggle="modal" data-bs-target="#weightModal">
+                    <i class="bi bi-plus-lg"></i> 今日の体重を記録
+                </button>
+            </div>
                 <div style="height: 250px;">
                     <canvas id="weightChart"></canvas>
                 </div>
@@ -24,8 +29,7 @@
         </div>
 
         <div class="col-md-5 mb-3">
-            <div class="dashboard-card text-center d-flex flex-column justify-content-center" style="height: 100%;">
-
+            <div class="dashboard-card text-center d-flex flex-column justify-content-center h-100">
                 <h2 class="fw-bold display-4 mb-0">
                     <span th:text="${dashboard.targetCalories}">2500</span> <span class="fs-4">kcal</span>
                 </h2>
@@ -46,7 +50,6 @@
 
     <div class="row">
         <div class="col-12">
-
             <div class="dashboard-card">
                 <h5 class="fw-bold mb-3">食事を記録</h5>
 
@@ -83,55 +86,125 @@
                     </div>
                 </div>
             </div>
-            <div class="modal fade" id="manualInputModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header border-0">
-                            <h5 class="modal-title fw-bold">手動で記録</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="weightModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">体重を記録</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form th:action="@{/weight/add}" method="post">
+                <div class="modal-body">
+                    <div class="mb-4 text-center">
+                        <label class="form-label text-muted small mb-1">日付を選択</label>
+                        <input type="date" class="form-control form-control-lg text-center mx-auto"
+                               id="weightDate" name="date" style="max-width: 200px;" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="weightInput" class="form-label text-muted small">体重 (kg)</label>
+                        <div class="input-group input-group-lg">
+                            <input type="number" step="0.1" class="form-control fw-bold text-center"
+                                   id="weightInput" name="weight" placeholder="00.0" required>
+                            <span class="input-group-text bg-white border-start-0">kg</span>
                         </div>
-
-                        <form th:action="@{/food/manual}" method="post">
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label for="foodName" class="form-label text-muted small">食品名</label>
-                                    <input type="text" class="form-control" id="foodName" name="name" placeholder="例: おにぎり" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="foodCalories" class="form-label text-muted small">カロリー (kcal)</label>
-                                    <input type="number" class="form-control" id="foodCalories" name="calories" placeholder="例: 200" required>
-                                </div>
-                            </div>
-                            <div class="modal-footer border-0">
-                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">キャンセル</button>
-                                <button type="submit" class="btn btn-primary px-4 fw-bold">記録する</button>
-                            </div>
-                        </form>
-
                     </div>
                 </div>
+
+                <div class="modal-footer border-0 justify-content-center pb-4">
+                    <button type="submit" class="btn btn-primary px-5 rounded-pill fw-bold">保存する</button> </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="manualInputModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">手動で記録</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+
+            <form th:action="@{/food/manual}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="foodName" class="form-label text-muted small">食品名</label>
+                        <input type="text" class="form-control" id="foodName" name="name" placeholder="例: おにぎり" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="foodCalories" class="form-label text-muted small">カロリー (kcal)</label>
+                        <input type="number" class="form-control" id="foodCalories" name="calories" placeholder="例: 200" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">記録する</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('weightDate');
+        const d = new Date();
+        const today = d.getFullYear() + '-' +
+            ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
+            ('0' + d.getDate()).slice(-2);        dateInput.value = today;
+
+        // 初期表示時もデータを取得
+        fetchWeightData(today);
+    });
+
+    document.getElementById('weightDate').addEventListener('change', function() {
+        const selectedDate = this.value;
+        if (selectedDate) {
+            fetchWeightData(selectedDate);
+        }
+    });
+
+    function fetchWeightData(dateStr) {
+        const weightInput = document.getElementById('weightInput');
+        weightInput.value = ''; // ローディング感のためクリア
+
+        fetch(`/api/weight?date=${dateStr}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.weight && data.weight !== null) {
+                    weightInput.value = data.weight;
+                } else {
+                    weightInput.value = '';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching weight:', error);
+            });
+    }
+</script>
+
 <script th:inline="javascript">
     const ctx = document.getElementById('weightChart').getContext('2d');
 
-    // Controllerから渡されたデータを受け取る
-    // データがない場合は空配列 [] になるように安全策をとっています
+    // データがない場合は空配列を入れる
     const weightDates = /*[[${weightDates}]]*/ [];
     const weightValues = /*[[${weightValues}]]*/ [];
 
     const weightChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: weightDates, // ここに日付リストが入る
+            labels: weightDates,
             datasets: [{
                 label: '体重 (kg)',
-                data: weightValues, // ここに体重リストが入る
+                data: weightValues,
                 borderColor: '#00B4D8',
                 backgroundColor: 'rgba(0, 180, 216, 0.1)',
                 tension: 0.3,
@@ -144,7 +217,7 @@
             scales: {
                 y: {
                     beginAtZero: false,
-                    // データがない時におかしくならないよう最小・最大は自動調整に任せるか、適当なデフォルトを入れる
+                    grace: '10%' // グラフの上下に少し余白を持たせる
                 }
             },
             plugins: {
