@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>工事中 - Futoru</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        .construction-container {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .construction-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        .construction-gif {
+            width: 50px;
+            height: auto;
+            margin-bottom: 2rem;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<div th:replace="~{common/navbar :: navbar('none')}"></div>
+
+<div class="container construction-container">
+    <div class="construction-card border-0">
+        <img src="/images/koujichu.gif"
+             alt="Under Construction" class="construction-gif">
+
+        <h2 class="fw-bold mb-3">工事中</h2>
+        <p class="text-muted mb-4">この機能は現在開発中です。</p>
+
+        <div class="d-grid gap-2">
+            <a th:href="@{/}" class="btn btn-theme py-2 fw-bold rounded-pill">
+                <i class="bi bi-house-door me-2"></i>ホームへ戻る
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

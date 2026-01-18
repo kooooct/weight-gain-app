@@ -96,6 +96,13 @@ public class WebController {
         return "index";
     }
 
+    @GetMapping("/under-construction")
+    public String underConstruction(Model model) {
+        model.addAttribute("activePage", "none");
+
+        return "under-construction";
+    }
+
     @PostMapping("/weight/add")
     public String addWeight(
             @RequestParam("date") String datestr,
