@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>作成 - Futoru</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        .sticky-sidebar { position: sticky; top: 20px; }
+        .food-item-btn:hover { background-color: #f8f9fa; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{common/navbar :: navbar('recipe')}"></div>
+
+<div class="container py-4">
+    <div class="row">
+
+        <div class="col-md-7 mb-4">
+
+            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="pills-list-tab" data-bs-toggle="pill" data-bs-target="#pills-list" type="button">
+                        <i class="bi bi-search me-1"></i>リストから選択
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="pills-manual-tab" data-bs-toggle="pill" data-bs-target="#pills-manual" type="button">
+                        <i class="bi bi-pencil me-1"></i>手入力で追加
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="pills-tabContent">
+
+                <div class="tab-pane fade show active" id="pills-list" role="tabpanel">
+                    <input type="text" id="foodSearch" class="form-control mb-3" placeholder="食材名で検索...">
+                    <div class="list-group" style="max-height: 500px; overflow-y: auto;">
+                        <button th:each="food : ${foodList}"
+                                type="button"
+                                class="list-group-item list-group-item-action food-item-btn"
+                                th:onclick="addToRecipe([[${food.id}]], [[${food.name}]], [[${food.calories}]])">
+                            <span>
+                                <i th:class="${food.type == 'INGREDIENT'} ? 'bi bi-egg-fried text-secondary me-2' : 'bi bi-basket2-fill text-warning me-2'"></i>
+                                <span class="food-name" th:text="${food.name}">食品名</span>
+                            </span>
+                            <span class="badge bg-light text-dark border rounded-pill"
+                                  th:text="${food.calories} + ' kcal'">100 kcal</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="pills-manual" role="tabpanel">
+                    <div class="card bg-light border-0">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3">その場限りの食材を追加</h6>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">名称</label>
+                                <input type="text" id="manualName" class="form-control" placeholder="例: 隠し味のハチミツ">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">カロリー (kcal)</label>
+                                <input type="number" id="manualCal" class="form-control" placeholder="例: 50">
+                            </div>
+                            <button class="btn btn-secondary w-100" onclick="addManualToRecipe()">
+                                <i class="bi bi-plus-lg me-1"></i>カートに追加
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card shadow-sm sticky-sidebar border-0 bg-light">
+                <div class="card-body">
+                    <h4 class="fw-bold mb-3 text-theme"><i class="bi bi-basket2 me-2"></i>作成パネル</h4>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">名前</label>
+                        <input type="text" id="recipeName" class="form-control fw-bold" placeholder="例: カレーライス, 朝食セットA" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">種類</label>
+                        <div class="d-flex gap-2">
+                            <input type="radio" class="btn-check" name="foodType" id="typeDish" value="DISH" checked autocomplete="off">
+                            <label class="btn btn-outline-warning flex-fill" for="typeDish">
+                                <i class="bi bi-fire me-1"></i>料理 (レシピ)
+                            </label>
+
+                            <input type="radio" class="btn-check" name="foodType" id="typeSet" value="MEAL_SET" autocomplete="off">
+                            <label class="btn btn-outline-success flex-fill" for="typeSet">
+                                <i class="bi bi-cup-hot me-1"></i>定食 (メニュー)
+                            </label>
+                        </div>
+                        <div class="form-text small" id="typeHelp">
+                            食材を組み合わせた「1つの料理」を作る場合は左。<br>
+                            料理や飲み物を組み合わせた「セット」の場合は右。
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div id="selectedItemsArea" class="mb-3">
+                        <p class="text-center text-muted small py-4" id="emptyMsg">
+                            左から食材を追加してください
+                        </p>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="h5 mb-0">合計:</span>
+                        <span class="h4 fw-bold text-theme mb-0"><span id="totalCalories">0</span> kcal</span>
+                    </div>
+
+                    <button class="btn btn-theme w-100 py-2 fw-bold rounded-pill" onclick="saveRecipe()">
+                        <i class="bi bi-save me-2"></i>保存する
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // カートデータ: { id: null(手動) or Long, name: "", unitCalories: 100, amount: 1.0, isManual: boolean }
+    let cart = [];
+
+    // 1. リストから追加 (マスタ)
+    function addToRecipe(id, name, calories) {
+        // マスタの場合は、同じIDがあれば量を増やす
+        const existing = cart.find(item => !item.isManual && item.id === id);
+        if (existing) {
+            existing.amount += 1.0;
+        } else {
+            cart.push({ id: id, name: name, unitCalories: calories, amount: 1.0, isManual: false });
+        }
+        renderCart();
+    }
+
+    // 2. 手入力フォームから追加 (手動)
+    function addManualToRecipe() {
+        const nameInput = document.getElementById('manualName');
+        const calInput = document.getElementById('manualCal');
+
+        const name = nameInput.value;
+        const cal = parseInt(calInput.value);
+
+        if (!name || isNaN(cal)) {
+            alert("名称とカロリーを入力してください");
+            return;
+        }
+
+        // 手入力の場合はIDなし、量変更不可(固定1)、isManual=true
+        cart.push({ id: null, name: name, unitCalories: cal, amount: 1.0, isManual: true });
+
+        // 入力欄クリア
+        nameInput.value = '';
+        calInput.value = '';
+
+        renderCart();
+    }
+
+    // 3. 削除
+    function removeFromRecipe(index) {
+        cart.splice(index, 1);
+        renderCart();
+    }
+
+    // 4. 量変更 (マスタ項目のみ)
+    function updateAmount(index, newAmount) {
+        cart[index].amount = parseFloat(newAmount);
+        renderCart();
+    }
+
+    // 5. 描画
+    function renderCart() {
+        const container = document.getElementById('selectedItemsArea');
+        const emptyMsg = document.getElementById('emptyMsg');
+        const totalEl = document.getElementById('totalCalories');
+
+        container.innerHTML = '';
+        let total = 0;
+
+        if (cart.length === 0) {
+            container.appendChild(emptyMsg);
+            totalEl.textContent = 0;
+            return;
+        }
+
+        cart.forEach((item, index) => {
+            const subtotal = Math.round(item.unitCalories * item.amount);
+            total += subtotal;
+
+            // 手入力アイテムの場合、量変更ボックスを表示しない(または固定表示)
+            const amountInputHtml = item.isManual
+                ? `<span class="small text-muted py-1 px-2 bg-light border rounded">1人前(固定)</span>`
+                : `<div class="input-group input-group-sm" style="width: 100px;">
+                     <input type="number" step="0.1" class="form-control" value="${item.amount}" onchange="updateAmount(${index}, this.value)">
+                     <span class="input-group-text">人前</span>
+                   </div>`;
+
+            const badgeHtml = item.isManual
+                ? `<span class="badge bg-secondary ms-2" style="font-size:0.7em;">手入力</span>`
+                : ``;
+
+            const html = `
+                <div class="bg-white p-2 rounded mb-2 shadow-sm border">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>
+                            <span class="fw-bold">${item.name}</span>
+                            ${badgeHtml}
+                        </span>
+                        <button class="btn btn-sm text-danger p-0" onclick="removeFromRecipe(${index})">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        ${amountInputHtml}
+                        <span class="small fw-bold text-muted">${subtotal} kcal</span>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+
+        totalEl.textContent = total;
+    }
+
+    // 6. 保存
+    function saveRecipe() {
+        const name = document.getElementById('recipeName').value;
+        if (!name) { alert("名前を入力してください"); return; }
+        if (cart.length === 0) { alert("中身を少なくとも1つ追加してください"); return; }
+
+        // ラジオボタンの値を取得
+        const type = document.querySelector('input[name="foodType"]:checked').value;
+
+        // 送信データ作成
+        const requestData = {
+            name: name,
+            type: type,
+            ingredients: cart.map(item => ({
+                foodItemId: item.id,      // nullなら手入力とみなされる
+                manualName: item.isManual ? item.name : null,
+                manualCalories: item.isManual ? item.unitCalories : null,
+                amount: item.amount
+            }))
+        };
+
+        const token = document.querySelector('meta[name="_csrf"]').content;
+        const header = document.querySelector('meta[name="_csrf_header"]').content;
+
+        fetch('/recipe/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', [header]: token },
+            body: JSON.stringify(requestData)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 成功したらトップページへ遷移（パラメータ付き）
+                    // トースト表示処理は遷移先のページ（/）で行うため、ここでは飛ばすだけでOK
+                    window.location.href = '/?success=true';
+                }
+            });
+    }
+
+    // 検索フィルタ
+    document.getElementById('foodSearch').addEventListener('keyup', function() {
+        const keyword = this.value.toLowerCase();
+        document.querySelectorAll('.food-item-btn').forEach(item => {
+            const name = item.querySelector('.food-name').textContent.toLowerCase();
+            item.style.display = name.includes(keyword) ? '' : 'none';
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+/* 全体のフォント設定 */
+body {
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    background-color: #f5f7fa; /* 薄いグレーの背景 */
+}
+
+/* Futoruのテーマカラー (スクショのシアン色) */
+.bg-theme {
+    background-color: #00B4D8 !important; /* 少し濃いめのシアン */
+}
+.text-theme {
+    color: #00B4D8 !important;
+}
+.btn-theme {
+    background-color: #00B4D8;
+    color: white;
+    border: none;
+    font-weight: bold;
+}
+.btn-theme:hover {
+    background-color: #0096B4; /* ホバー時は少し暗く */
+    color: white;
+}
+
+/* ログイン画面のカード */
+.login-card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* ふんわりした影 */
+    padding: 2rem;
+}
+
+/* グラフやカロリー表示のカード */
+.dashboard-card {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    padding: 20px;
+    height: 100%; /* 高さを揃える */
+}
+
+/* 未選択のリンク：真っ白にする */
+.navbar-dark .navbar-nav .nav-link {
+    color: #ffffff !important;
+    opacity: 1; /* 透明度をなくしてハッキリ白く */
+}
+
+/* 選択中のリンク（active）：暗い色にする */
+.navbar-dark .navbar-nav .nav-link.active {
+    color: #ffffff !important;
+    opacity: 0.7;
+}
+
+/* マウスを乗せた時（ホバー）：少し暗くして反応させる */
+.navbar-dark .navbar-nav .nav-link:hover {
+    opacity: 0.8;
+}
+/* 選択中のリンクをホバーした時：変化させない */
+.navbar-dark .navbar-nav .nav-link.active:hover {
+    color: #ffffff !important;
+    opacity: 0.7;
+    cursor: default; /* クリック済み感を出す（お好みで） */
+}
+
+/* 数値入力のスピンボタン（上下矢印）を消す */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* プレースホルダーの色を薄くする */
+#weightInput::placeholder {
+    color: #e0e0e0;
+}
+
+/* 入力時の青い枠線を消す（下線演出があるため） */
+#weightInput:focus {
+    box-shadow: none;
+    outline: none;
+}

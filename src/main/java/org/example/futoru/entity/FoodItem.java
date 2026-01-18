@@ -35,8 +35,9 @@ public class FoodItem {
     private String unit;
 
     /**
-     * 食品の区分。
-     * INGREDIENT(食材), DISH(料理), PRODUCT(既製品) などを想定。
+     * INGREDIENT: 食材（肉、野菜、既製品）
+     * DISH: 料理（レシピで作られたもの。カレー、ハンバーグ）
+     * MEAL_SET: 定食・セット（料理の組み合わせ。Aセット）
      */
     private String type;
 }
