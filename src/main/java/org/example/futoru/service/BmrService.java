@@ -6,12 +6,7 @@ import org.example.futoru.dto.BmrRequest;
 import org.example.futoru.dto.BmrResponse;
 import org.example.futoru.dto.Gender;
 import org.example.futoru.entity.User;
-import org.example.futoru.entity.WeightLog;
-import org.example.futoru.repository.UserRepository;
-import org.example.futoru.repository.WeightLogRepository;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 基礎代謝(BMR)および増量目標カロリーの計算ロジックを提供するサービスクラス。
@@ -24,13 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class BmrService {
 
-    private final UserRepository userRepository;
-    private final WeightLogRepository weightLogRepository;
-
     // === 定数定義 ===
-
-    /** プロフィール未設定時に返却するデフォルトの目標カロリー (kcal) */
-    private static final int DEFAULT_TARGET_CALORIES = 2200;
 
     /** 増量目的のためにTDEEに上乗せする余剰カロリー (kcal) */
     private static final int SURPLUS_CALORIES_FOR_GAIN = 300;
@@ -45,30 +34,22 @@ public class BmrService {
     private static final int FEMALE_OFFSET = -161;
 
     /**
-     * 指定されたユーザーの最新情報（プロフィールおよび最新の体重ログ）に基づき、
-     * 1日の目標摂取カロリーを計算して返却する。
+     * ユーザー情報と体重を受け取り、目標摂取カロリーを計算する。
      * <p>
-     * 体重ログが存在しない、またはプロフィール情報（身長・年齢）が不足している場合は、
-     * 安全策としてデフォルト値 {@link #DEFAULT_TARGET_CALORIES} を返す。
+     * データの取得（DBアクセス）は呼び出し元で行い、このメソッドには
+     * 確定した User エンティティと 現在の体重 を渡すこと。
      * </p>
      *
-     * @param username 計算対象のユーザー名
+     * @param user          ユーザーエンティティ
+     * @param currentWeight 現在の体重 (kg)
      * @return 1日の目標摂取カロリー (kcal)
-     * @throws UsernameNotFoundException ユーザーが存在しない場合
      */
-    @Transactional(readOnly = true)
-    public int calculateTargetCalories(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-
-        // 計算には最新の体重ログを使用する
-        Double currentWeight = weightLogRepository.findFirstByUserOrderByDateDesc(user)
-                .map(WeightLog::getWeight)
-                .orElse(null);
-
-        // 必須パラメータの不足チェック
-        if (currentWeight == null || user.getHeight() == null || user.getAge() == null) {
-            return DEFAULT_TARGET_CALORIES;
+    public int calculateTargetCalories(User user, Double currentWeight) {
+        if (currentWeight == null) {
+            throw new IllegalStateException("体重データが存在しません。ユーザー: " + user.getUsername());
+        }
+        if (user.getHeight() == null || user.getAge() == null) {
+            throw new IllegalStateException("プロフィール情報（身長・年齢）が不足しています。ユーザー: " + user.getUsername());
         }
 
         // 計算用リクエストDTOの構築
@@ -105,7 +86,6 @@ public class BmrService {
         response.setBmr(Math.round(bmr * 10.0) / 10.0);
         response.setTdee(Math.round(tdee * 10.0) / 10.0);
         response.setTargetCalories(Math.round(targetCalories * 10.0) / 10.0);
-        response.setDescription(createAdviceMessage(targetCalories));
 
         return response;
     }
@@ -146,16 +126,6 @@ public class BmrService {
             return bmr * ActivityLevel.LOW.getMultiplier();
         }
         return bmr * level.getMultiplier();
-    }
-
-    /**
-     * ユーザーへのアドバイスメッセージを作成する。
-     *
-     * @param target 目標摂取カロリー
-     * @return メッセージ文字列
-     */
-    private String createAdviceMessage(double target) {
-        return "太るためには、1日約 " + (int) target + "kcal を目指して食べましょう！";
     }
 
     /**

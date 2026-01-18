@@ -24,6 +24,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
  * ユーザー認証（ログイン・登録）に関するリクエストを制御するコントローラー。
+ * <p>
+ * 新規ユーザーの登録処理、バリデーションチェック、および登録完了後の自動ログイン処理を担当する。
+ * また、ログイン済みユーザーが再度ログイン画面等にアクセスした場合のリダイレクト制御も行う。
+ * </p>
  */
 @Controller
 @RequiredArgsConstructor
@@ -35,8 +39,13 @@ public class AuthController {
 
     /**
      * ユーザー新規登録画面を表示する。
+     * <p>
+     * すでにログイン済みのユーザーがアクセスした場合は、トップページへリダイレクトする。
+     * </p>
      *
-     * @return 登録画面テンプレート名 ("register")
+     * @param userDetails ログイン中のユーザー情報（未ログイン時はnull）
+     * @param form        登録フォームオブジェクト
+     * @return 登録画面テンプレート名 ("register") またはリダイレクトパス
      */
     @GetMapping("/register")
     public String showRegisterForm(@AuthenticationPrincipal UserDetails userDetails,
@@ -49,10 +58,18 @@ public class AuthController {
 
     /**
      * ユーザーの新規登録処理を実行する。
-     * 入力された情報でユーザーを作成し、成功時はプロフィール登録画面へリダイレクトする。
-     * 重複エラー時は登録画面に戻し、メッセージを表示する。
+     * <p>
+     * 入力値のバリデーションとパスワード一致チェックを行い、問題なければユーザーを作成する。
+     * 作成後は自動的にログイン処理（セキュリティコンテキストの保存）を行い、プロフィール初期設定画面へリダイレクトする。
+     * </p>
      *
-     * @return プロフィール登録画面へのリダイレクトパス
+     * @param form               入力された登録データ
+     * @param bindingResult      バリデーション結果
+     * @param model              画面表示用モデル
+     * @param request            サーブレットリクエスト
+     * @param response           サーブレットレスポンス
+     * @param redirectAttributes リダイレクト先へデータを渡すためのオブジェクト
+     * @return 成功時は初期設定画面へのリダイレクト、失敗時は登録画面の再表示
      */
     @PostMapping("/register")
     public String register(@Validated @ModelAttribute("registerForm") RegisterForm form,
@@ -62,45 +79,29 @@ public class AuthController {
                            HttpServletResponse response,
                            RedirectAttributes redirectAttributes
     ) {
-        // バリデーションエラー（文字数など）があるか？
         if (bindingResult.hasErrors()) {
             return "register";
         }
 
-        // パスワード一致チェック（カスタムエラーとして追加）
         if (!form.getPassword().equals(form.getConfirmPassword())) {
-            // "confirmPassword" フィールドにエラーを追加する
             bindingResult.rejectValue("confirmPassword", "error.password.match", "パスワード（確認用）が一致しません");
             return "register";
         }
+
         try {
             userService.registerUser(form.getUsername(), form.getPassword());
 
-            // --- 登録後の自動ログイン処理 ---
-
-            // 通常、registerUserだけではDBに保存されるだけでログイン状態にはならない。
-            // UX向上のため、ここで強制的にログイン処理（自動ログイン）を実行する。
-
-            // 1. 今作ったばかりのユーザー情報をDBから取得
             UserDetails userDetails = userService.loadUserByUsername(form.getUsername());
-
-            // 2. 認証トークンを作成
-            // ユーザー情報、パスワード、権限（ROLE_USER等）をセットにする
             Authentication auth = new UsernamePasswordAuthenticationToken(
                     userDetails,
                     form.getPassword(),
                     userDetails.getAuthorities()
             );
 
-            // 3. セキュリティコンテキストに手形を入れる
-            // createEmptyContext()を使うのは、マルチスレッド環境での競合（Race Condition）を防ぐため
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(auth);
             SecurityContextHolder.setContext(context);
 
-            // 4. セッションに明示的に保存する
-            // Spring Security 6系からは、これを書かないとリクエスト終了時に
-            // コンテキストの中身が破棄されてしまい、ログインが維持できない
             securityContextRepository.saveContext(context, request, response);
 
             redirectAttributes.addFlashAttribute("toastMessage", "ようこそ、Futoruへ！");
@@ -115,9 +116,12 @@ public class AuthController {
 
     /**
      * カスタムログイン画面を表示する。
-     * SecurityConfigにて loginPage("/login") が設定されている場合に呼び出される。
+     * <p>
+     * すでにログイン済みのユーザーがアクセスした場合は、トップページへリダイレクトする。
+     * </p>
      *
-     * @return ログイン画面テンプレート名 ("login")
+     * @param userDetails ログイン中のユーザー情報（未ログイン時はnull）
+     * @return ログイン画面テンプレート名 ("login") またはリダイレクトパス
      */
     @GetMapping("/login")
     public String showLoginForm(@AuthenticationPrincipal UserDetails userDetails) {

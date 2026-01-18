@@ -3,7 +3,6 @@ package org.example.futoru.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.futoru.dto.DashboardDto;
 import org.example.futoru.entity.MealLog;
-import org.example.futoru.service.BmrService;
 import org.example.futoru.service.FoodService;
 import org.example.futoru.service.UserService;
 import org.example.futoru.service.WeightLogService;
@@ -19,57 +18,51 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * アプリケーションの画面遷移を制御するメインコントローラー。
- * トップページ（ダッシュボード）の表示用データ構築を担当する。
+ * アプリケーションのメイン画面（ダッシュボード）や共通の画面遷移を制御するコントローラークラス。
+ * <p>
+ * 複数のサービス（食事、体重、ユーザー情報）を集約し、
+ * トップページに表示するための統計データやグラフデータを構築する役割を担う。
+ * </p>
  */
 @Controller
 @RequiredArgsConstructor
 public class WebController {
 
     private final FoodService foodService;
-    private final BmrService bmrService;
     private final UserService userService;
     private final WeightLogService weightLogService;
 
     /**
      * ダッシュボード画面（トップページ）を表示する。
      * <p>
-     * ログインユーザーの以下の情報を取得し、Viewへ渡す：
-     * 1. activePage: ナビゲーションバーの表示制御用フラグ
-     * 2. DashboardDto: カロリー目標と現在の摂取状況
-     * 3. progress: 目標に対する進捗率（プログレスバー用）
-     * 4. history: 今日の食事記録リスト
-     * 5. foodList: 記録追加用の食品マスタリスト
+     * 画面表示に必要な全てのデータ（食事履歴、カロリー進捗、体重グラフなど）を一括して取得する。
+     * また、ユーザーがプロフィール（身長・体重など）を未設定の場合は、初期設定画面へ強制リダイレクトする制御もここで行う。
      * </p>
      *
      * @param model       画面表示用データモデル
      * @param userDetails Spring Securityによって注入される認証済みユーザー情報
-     * @return テンプレート名 ("index")
+     * @return テンプレート名 ("index") または リダイレクトパス
      */
     @GetMapping("/")
     public String index(Model model, @AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
 
-        // プロフィール未入力の場合プロフィール登録画面へ送る
         if (!userService.isProfileCompleted(username)) {
             return "redirect:/profile/init";
         }
 
-        // 1. ナビゲーションバー用設定 (ホームをアクティブ表示)
+        var user = userService.getUserByUsername(username);
+
         model.addAttribute("activePage", "home");
 
-        // 2. 今日の食事履歴を取得
         List<MealLog> todayLogs = foodService.getTodayMealLogs(username);
 
-        // 3. 今日の合計摂取カロリーを計算 (Stream API使用)
         int currentCalories = todayLogs.stream()
                 .mapToInt(MealLog::getCalories)
                 .sum();
 
-        // 4. 目標カロリーを取得 (BmrServiceを使用)
-        int targetCalories = bmrService.calculateTargetCalories(username);
+        int targetCalories = user.getTargetCalories();
 
-        // 5. 表示用DTOを作成 (目標 - 現在 = 残り)
         DashboardDto dashboard = new DashboardDto(
                 targetCalories,
                 currentCalories,
@@ -77,8 +70,7 @@ public class WebController {
         );
         model.addAttribute("dashboard", dashboard);
 
-        // 6. プログレスバーの進捗率計算
-        // カロリーオーバーしても表示が崩れないよう最大100%に制限する
+        // プログレスバーの進捗率計算（最大100%に制限）
         int progress = 0;
         if (targetCalories > 0) {
             progress = (int) ((double) currentCalories / targetCalories * 100);
@@ -86,23 +78,43 @@ public class WebController {
         }
         model.addAttribute("progress", progress);
 
-        // 7. その他のデータをViewへ渡す
         model.addAttribute("history", todayLogs);
         model.addAttribute("foodList", foodService.getAvailableFoods(username));
 
+        // Chart.js 用データ
         model.addAttribute("weightDates", weightLogService.getGraphLabels(username));
         model.addAttribute("weightValues", weightLogService.getGraphValues(username));
 
         return "index";
     }
 
+    /**
+     * 工事中画面を表示する。
+     * <p>
+     * 未実装の機能へアクセスされた場合に表示するプレースホルダー画面。
+     * </p>
+     *
+     * @param model 画面表示用データモデル
+     * @return テンプレート名 ("under-construction")
+     */
     @GetMapping("/under-construction")
     public String underConstruction(Model model) {
         model.addAttribute("activePage", "none");
-
         return "under-construction";
     }
 
+    /**
+     * 体重記録を追加する。
+     * <p>
+     * ダッシュボード上のモーダルウィンドウから送信された体重データを受け取り保存する。
+     * 処理完了後はトップページへリダイレクトし、グラフを更新させる。
+     * </p>
+     *
+     * @param datestr     日付文字列（HTML5 date input形式: "yyyy-MM-dd"）
+     * @param weight      体重 (kg)
+     * @param userDetails 認証済みユーザー情報
+     * @return トップページへのリダイレクトパス
+     */
     @PostMapping("/weight/add")
     public String addWeight(
             @RequestParam("date") String datestr,

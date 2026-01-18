@@ -33,7 +33,9 @@ public class UserService implements UserDetailsService {
 
     /**
      * Spring Securityの認証プロセスで使用されるメソッド。
+     * <p>
      * 指定されたユーザー名に基づいてデータベースからユーザー情報を取得する。
+     * </p>
      *
      * @param username 認証対象のユーザー名
      * @return 認証用ユーザー詳細情報（{@link UserDetails}）
@@ -47,13 +49,16 @@ public class UserService implements UserDetailsService {
 
     /**
      * 新規ユーザーのアカウント登録を行う。
+     * <p>
      * パスワードは {@link PasswordEncoder} を使用してハッシュ化された状態で保存される。
      * 身長などの身体情報は、初期状態では未設定（null）となる。
+     * </p>
      *
      * @param username 登録するユーザー名（一意である必要がある）
      * @param password 登録するパスワード（平文）
      * @throws IllegalArgumentException 指定されたユーザー名が既に使用されている場合
      */
+    @Transactional
     public void registerUser(String username, String password) {
         if (userRepository.findByUsername(username).isPresent()) {
             throw new IllegalArgumentException("Username is already taken: " + username);
@@ -61,7 +66,7 @@ public class UserService implements UserDetailsService {
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
-        user.setRole("USER"); // デフォルト権限の設定
+        user.setRole("USER");
 
         userRepository.save(user);
     }
@@ -80,10 +85,10 @@ public class UserService implements UserDetailsService {
      * @return プロフィール設定が完了している場合は true、未完了の場合は false
      * @throws java.util.NoSuchElementException ユーザーが存在しない場合
      */
+    @Transactional(readOnly = true)
     public boolean isProfileCompleted(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
 
-        // 最新の体重ログがあるかチェック
         boolean hasWeightLog = weightLogRepository.findFirstByUserOrderByDateDesc(user).isPresent();
 
         return user.getHeight() != null && hasWeightLog;
@@ -107,18 +112,15 @@ public class UserService implements UserDetailsService {
     @Transactional
     public void saveInitialProfile(String username, Double height, Double weight, Integer age, String gender, ActivityLevel activityLevel) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-        // 1. User情報のセット
         user.setHeight(height);
         user.setAge(age);
         user.setGender(gender);
         user.setActivityLevel(activityLevel.name());
 
-        // 先にUserを保存（ID確定や関連付けのため）
         userRepository.save(user);
 
-        // 2. 最初の体重ログを作成（当日の日付で記録）
         LocalDate today = LocalDate.now();
         WeightLog log = new WeightLog();
         log.setUser(user);
@@ -126,8 +128,7 @@ public class UserService implements UserDetailsService {
         log.setWeight(weight);
         weightLogRepository.save(log);
 
-        // 3. 目標カロリー計算 (BmrServiceへ計算を委譲)
-        int targetCalories = bmrService.calculateTargetCalories(username);
+        int targetCalories = bmrService.calculateTargetCalories(user, weight);
         user.setTargetCalories(targetCalories);
 
         userRepository.save(user);
@@ -135,7 +136,10 @@ public class UserService implements UserDetailsService {
 
     /**
      * 既存ユーザーのプロフィール情報を更新する。
+     * <p>
      * 更新された身体情報を元に、目標摂取カロリーの再計算と保存も自動的に行われる。
+     * 体重の更新は含まれない（WeightLogServiceで管理するため）。
+     * </p>
      *
      * @param username      更新対象のユーザー名
      * @param height        身長 (cm)
@@ -147,7 +151,7 @@ public class UserService implements UserDetailsService {
     @Transactional
     public void updateProfile(String username, Double height, Integer age, String gender, ActivityLevel activityLevel) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
         user.setHeight(height);
         user.setAge(age);
@@ -156,10 +160,45 @@ public class UserService implements UserDetailsService {
 
         userRepository.save(user);
 
-        // プロフィール変更に伴い、目標カロリーを再計算して更新
-        int targetCalories = bmrService.calculateTargetCalories(username);
+        Double currentWeight = weightLogRepository.findFirstByUserOrderByDateDesc(user)
+                .map(WeightLog::getWeight)
+                .orElse(null);
+
+        int targetCalories = bmrService.calculateTargetCalories(user, currentWeight);
         user.setTargetCalories(targetCalories);
 
         userRepository.save(user);
+    }
+
+    /**
+     * ユーザーの目標摂取カロリーを更新する。
+     * <p>
+     * 体重記録の更新時など、外部サービスから目標値の更新が必要な場合に呼び出される。
+     * </p>
+     *
+     * @param user              更新対象のユーザーエンティティ
+     * @param newTargetCalories 新しい目標カロリー値
+     */
+    @Transactional
+    public void updateTargetCalories(User user, int newTargetCalories) {
+        user.setTargetCalories(newTargetCalories);
+        userRepository.save(user);
+    }
+
+    /**
+     * ユーザー名からユーザーエンティティを取得する便利メソッド。
+     * <p>
+     * 他のサービス（WeightLogService等）でユーザーIDが必要な場合に使用する。
+     * 存在しない場合は例外をスローする。
+     * </p>
+     *
+     * @param username 取得したいユーザー名
+     * @return 該当するユーザーエンティティ
+     * @throws RuntimeException ユーザーが見つからない場合
+     */
+    @Transactional(readOnly = true)
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
     }
 }

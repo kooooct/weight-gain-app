@@ -6,8 +6,6 @@ import org.example.futoru.entity.MealLog;
 import org.example.futoru.entity.User;
 import org.example.futoru.repository.FoodItemRepository;
 import org.example.futoru.repository.MealLogRepository;
-import org.example.futoru.repository.UserRepository;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +29,7 @@ public class FoodService {
 
     private final FoodItemRepository foodItemRepository;
     private final MealLogRepository mealLogRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     /**
      * 指定されたユーザーが選択可能な食品リストを取得する。
@@ -45,7 +43,7 @@ public class FoodService {
      * @return 利用可能な食品のリスト
      */
     public List<FoodItem> getAvailableFoods(String username) {
-        User user = getUser(username);
+        User user = userService.getUserByUsername(username);
         return foodItemRepository.findAllAvailable(user);
     }
 
@@ -56,8 +54,9 @@ public class FoodService {
      * @param username 現在のユーザー名
      * @return 今日のMealLogリスト
      */
+    @Transactional(readOnly = true)
     public List<MealLog> getTodayMealLogs(String username) {
-        User user = getUser(username);
+        User user = userService.getUserByUsername(username);
 
         // 当日の範囲を設定 (例: 2025-01-01 00:00:00 ～ 23:59:59)
         LocalDateTime start = LocalDate.now().atStartOfDay();
@@ -80,7 +79,7 @@ public class FoodService {
      * @throws IllegalArgumentException 指定されたIDの食品が存在しない場合
      */
     public void recordMealFromMaster(String username, Long foodItemId, Double amount) {
-        User user = getUser(username);
+        User user = userService.getUserByUsername(username);
         FoodItem foodItem = foodItemRepository.findById(foodItemId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid food item ID"));
 
@@ -110,7 +109,7 @@ public class FoodService {
      * @param calories 合計カロリー (kcal)
      */
     public void recordManualMeal(String username, String name, int calories) {
-        User user = getUser(username);
+        User user = userService.getUserByUsername(username);
 
         MealLog log = new MealLog();
         log.setUser(user);
@@ -141,13 +140,5 @@ public class FoodService {
             throw new SecurityException("You cannot delete this log");
         }
         mealLogRepository.delete(log);
-    }
-
-    /**
-     * ユーザー名からUserエンティティを取得するヘルパーメソッド。
-     */
-    private User getUser(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 }

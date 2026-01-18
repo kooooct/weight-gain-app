@@ -1,10 +1,7 @@
 package org.example.futoru.controller.api;
 
 import lombok.RequiredArgsConstructor;
-import org.example.futoru.entity.User;
-import org.example.futoru.entity.WeightLog;
-import org.example.futoru.repository.UserRepository;
-import org.example.futoru.repository.WeightLogRepository;
+import org.example.futoru.service.WeightLogService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,38 +10,46 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
-@RestController // ← これがつくと、戻り値が自動的に JSON になる！
+/**
+ * 体重データに関するAPI操作を提供するコントローラークラス。
+ * <p>
+ * 画面遷移を伴わない非同期通信（AJAX）向けに、JSON形式でデータを返却するエンドポイントを定義する。
+ * </p>
+ */
+@RestController
 @RequestMapping("/api/weight")
 @RequiredArgsConstructor
 public class WeightApiController {
 
-    private final WeightLogRepository weightLogRepository;
-    private final UserRepository userRepository;
+    private final WeightLogService weightLogService;
 
     /**
-     * 指定された日付の体重データを返す
-     * URL例: /api/weight?date=2024-01-15
+     * 指定された日付の体重データを取得する。
+     * <p>
+     * クライアントから日付を受け取り、該当する体重記録が存在すればその値を返す。
+     * カレンダーの日付クリック時などに、既存の記録を表示するために使用される。
+     * </p>
+     *
+     * @param dateStr     日付文字列 (形式: "yyyy-MM-dd")
+     * @param userDetails 認証済みユーザー情報
+     * @return 体重データを含むMap（キー: "weight", 値: Double または null）
      */
     @GetMapping
     public Map<String, Object> getWeight(
             @RequestParam("date") String dateStr,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String username = userDetails.getUsername();
-        User user = userRepository.findByUsername(username).orElseThrow();
         LocalDate date = LocalDate.parse(dateStr);
+        String username = userDetails.getUsername();
 
-        Optional<WeightLog> log = weightLogRepository.findByUserAndDate(user, date);
+        Double weight = weightLogService.getWeightByDate(username, date);
 
-        if (log.isPresent()) {
-            // データがあったら JSON で返す { "weight": 60.5 }
-            return Map.of("weight", log.get().getWeight());
-        } else {
-            // なかったら null を返す { "weight": null }
-            return Map.of("weight",  null);
-        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("weight", weight);
+
+        return response;
     }
 }

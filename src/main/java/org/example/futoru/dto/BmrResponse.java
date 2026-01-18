@@ -15,7 +15,4 @@ public class BmrResponse {
 
     /** 増量のための目標摂取カロリー (kcal) */
     private double targetCalories;
-
-    /** ユーザーへのアドバイスメッセージ */
-    private String description;
 }
