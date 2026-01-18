@@ -57,7 +57,7 @@
                 <div class="tab-pane fade" id="pills-manual" role="tabpanel">
                     <div class="card bg-light border-0">
                         <div class="card-body">
-                            <h6 class="fw-bold mb-3">その場限りの食材を追加</h6>
+                            <h6 class="fw-bold mb-3">レシピ/メニューに食材や料理を追加</h6>
                             <div class="mb-3">
                                 <label class="form-label small text-muted">名称</label>
                                 <input type="text" id="manualName" class="form-control" placeholder="例: 隠し味のハチミツ">
@@ -67,7 +67,7 @@
                                 <input type="number" id="manualCal" class="form-control" placeholder="例: 50">
                             </div>
                             <button class="btn btn-secondary w-100" onclick="addManualToRecipe()">
-                                <i class="bi bi-plus-lg me-1"></i>カートに追加
+                                <i class="bi bi-plus-lg me-1"></i>追加
                             </button>
                         </div>
                     </div>
@@ -99,8 +99,8 @@
                             </label>
                         </div>
                         <div class="form-text small" id="typeHelp">
-                            食材を組み合わせた「1つの料理」を作る場合は左。<br>
-                            料理や飲み物を組み合わせた「セット」の場合は右。
+                            食材を組み合わせた「1つの料理」を作る場合は料理（レシピ）<br>
+                            料理や飲み物を組み合わせた「セット」の場合は定食（メニュー）
                         </div>
                     </div>
 
@@ -237,7 +237,7 @@
     // 6. 保存
     function saveRecipe() {
         const name = document.getElementById('recipeName').value;
-        if (!name) { alert("名前を入力してください"); return; }
+        if (!name) { alert("レシピ/メニューの名前を入力してください"); return; }
         if (cart.length === 0) { alert("中身を少なくとも1つ追加してください"); return; }
 
         // ラジオボタンの値を取得
