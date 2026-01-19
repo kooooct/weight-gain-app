@@ -11,8 +11,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -101,29 +99,5 @@ public class WebController {
     public String underConstruction(Model model) {
         model.addAttribute("activePage", "none");
         return "under-construction";
-    }
-
-    /**
-     * 体重記録を追加する。
-     * <p>
-     * ダッシュボード上のモーダルウィンドウから送信された体重データを受け取り保存する。
-     * 処理完了後はトップページへリダイレクトし、グラフを更新させる。
-     * </p>
-     *
-     * @param datestr     日付文字列（HTML5 date input形式: "yyyy-MM-dd"）
-     * @param weight      体重 (kg)
-     * @param userDetails 認証済みユーザー情報
-     * @return トップページへのリダイレクトパス
-     */
-    @PostMapping("/weight/add")
-    public String addWeight(
-            @RequestParam("date") String datestr,
-            @RequestParam("weight") Double weight,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        LocalDate date = LocalDate.parse(datestr);
-
-        weightLogService.saveWeightLog(userDetails.getUsername(), date, weight);
-        return "redirect:/";
     }
 }
