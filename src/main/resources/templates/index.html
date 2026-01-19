@@ -125,7 +125,7 @@
                         data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <form id="weightForm">
+            <form th:action="@{/weight/add}" method="post">
                 <div class="modal-body p-4">
 
                     <div class="mb-4">
@@ -249,11 +249,14 @@
         // URLに ?success=true がある場合のみ実行
         if (urlParams.has('success')) {
             const toastEl = document.getElementById('successToast');
+
             if (toastEl) {
                 document.getElementById('toastMessage').textContent = "レシピを作成しました！";
+
                 // Bootstrap 5 の Toast を初期化して表示
                 const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
                 toast.show();
+
                 const newUrl = window.location.pathname;
                 window.history.replaceState({}, document.title, newUrl);
             }
@@ -273,45 +276,6 @@
                 weightInput.value = (data.weight !== null) ? data.weight : '';
             });
     }
-
-    document.getElementById('weightForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-
-        fetch('/api/weight/add', {
-            method: 'POST',
-            body: formData,
-            headers: getCsrfHeaders()
-        })
-            .then(response => {
-                if (response.ok) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('weightModal'));
-                    modal.hide();
-
-                    const toastEl = document.getElementById('successToast');
-                    document.getElementById('toastMessage').textContent = "体重を記録しました";
-                    new bootstrap.Toast(toastEl).show();
-
-                    const inputDate = formData.get('date');
-                    const inputWeight = parseFloat(formData.get('weight'));
-
-                    if (typeof weightChart !== 'undefined') {
-                        const labels = weightChart.data.labels;
-                        const data = weightChart.data.datasets[0].data;
-                        const index = labels.indexOf(inputDate);
-                        if (index !== -1) {
-                            data[index] = inputWeight;
-                        } else {
-                            labels.push(inputDate);
-                            data.push(inputWeight);
-                        }
-                        weightChart.update();
-                    }
-                } else {
-                    alert('保存に失敗しました');
-                }
-            });
-    });
 </script>
 
 <script th:inline="javascript">
@@ -319,7 +283,7 @@
     const weightDates = /*[[${weightDates}]]*/ [];
     const weightValues = /*[[${weightValues}]]*/ [];
 
-    var weightChart = new Chart(ctx, {
+    new Chart(ctx, {
         type: 'line',
         data: {
             labels: weightDates,
@@ -354,7 +318,9 @@
         const dd = String(today.getDate()).padStart(2, '0');
 
         const formattedDate = `${yyyy}-${mm}-${dd}`;
+
         dateInput.value = formattedDate;
+
         // 日付変更イベントを手動で発火させて、既存のデータ取得処理(fetchWeightData)を走らせる
         dateInput.dispatchEvent(new Event('change'));
     }
@@ -442,12 +408,14 @@
             .then(res => res.json())
             .then(data => {
                 updateScreen(data)
+
                 const modalEl = document.getElementById('menuModal');
                 // モーダルが開いている場合のみ閉じる処理を実行
                 if (modalEl.classList.contains('show')) {
                     const modal = bootstrap.Modal.getInstance(modalEl);
                     if(modal) modal.hide();
                 }
+
             });
     }
 

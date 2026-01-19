@@ -2,10 +2,12 @@ package org.example.futoru.controller.api;
 
 import lombok.RequiredArgsConstructor;
 import org.example.futoru.service.WeightLogService;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -49,23 +51,5 @@ public class WeightApiController {
         response.put("weight", weight);
 
         return response;
-    }
-
-    @PostMapping("/add") // URLは /api/weight/add になります
-    public ResponseEntity<Map<String, String>> addWeight(
-            @RequestParam("date") String dateStr,
-            @RequestParam("weight") Double weight,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        LocalDate date = LocalDate.parse(dateStr);
-        String username = userDetails.getUsername();
-
-        // 保存処理
-        weightLogService.saveWeightLog(username, date, weight);
-
-        // リダイレクトではなく、成功メッセージ(JSON)を返す
-        Map<String, String> response = new HashMap<>();
-        response.put("status", "success");
-        return ResponseEntity.ok(response);
     }
 }
