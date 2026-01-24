@@ -5,6 +5,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
 
 # GITHUB_TOKENの権限設定 (GHCRへのパッケージ書き込みに必要)
 permissions:
@@ -27,9 +31,11 @@ jobs:
           java-version: '21'
           distribution: 'corretto'
           cache: 'maven'
+          cache-dependency-path: 'backend/pom.xml'
 
       # 3. Mavenビルド (テストはスキップ)
       - name: Build with Maven
+        working-directory: ./backend
         run: ./mvnw clean package -DskipTests
 
       # 4. GitHub Container Registry へのログイン
@@ -51,9 +57,10 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./backend
+          file: ./backend/Dockerfile
           push: true
-          tags: ghcr.io/${{ env.OWNER_LC }}/futoru:latest
+          tags: ghcr.io/${{ env.OWNER_LC }}/futoru-backend:latest
 
       # 7. SSH接続によるリモートデプロイ実行
       - name: Deploy to EC2 via SSH
@@ -64,7 +71,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # 変数定義
-            IMAGE_TAG="ghcr.io/${{ env.OWNER_LC }}/futoru:latest"
+            IMAGE_TAG="ghcr.io/${{ env.OWNER_LC }}/futoru-backend:latest"
             DEPLOY_DIR="/home/${{ secrets.EC2_USER }}/futoru-docker"
             
             # リモートホスト側でのレジストリログイン
@@ -79,7 +86,7 @@ jobs:
             services:
               app:
                 image: $IMAGE_TAG
-                container_name: futoru-app
+                container_name: futoru-backend
                 ports:
                   - "8080:8080"
                 environment:
@@ -87,6 +94,7 @@ jobs:
                   - DB_URL=jdbc:mysql://db:3306/futoru_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Tokyo&characterEncoding=UTF-8
                   - DB_USER=user
                   - DB_PASSWORD=password
+                  - TZ: Asia/Tokyo
                 depends_on:
                   - db
                 networks:
@@ -100,6 +108,7 @@ jobs:
                   MYSQL_USER: user
                   MYSQL_PASSWORD: password
                   MYSQL_ROOT_PASSWORD: root_password
+                  TZ: Asia/Tokyo
                 ports:
                   - "3306:3306"
                 command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --performance_schema=OFF --innodb_buffer_pool_size=128M
