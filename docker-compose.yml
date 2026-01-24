@@ -1,10 +1,13 @@
 services:
-  app:
-    image: ghcr.io/kooooct/futoru:latest
-    container_name: futoru-app
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: futoru-backend
     ports:
       - "8080:8080"
     environment:
+      - JAVA_TOOL_OPTIONS=-Xmx300m
       - DB_URL=jdbc:mysql://db:3306/futoru_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Tokyo&characterEncoding=UTF-8
       - DB_USER=user
       - DB_PASSWORD=password
@@ -21,6 +24,7 @@ services:
       MYSQL_USER: user
       MYSQL_PASSWORD: password
       MYSQL_ROOT_PASSWORD: root_password
+      TZ: Asia/Tokyo
     ports:
       - "3306:3306"
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
